@@ -1,0 +1,1585 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Mi Garaje">
+  <title>Mi Garaje</title>
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23007AFF'/%3E%3Cpath d='M42 105l10-32c3-9 11-15 21-15h34c10 0 18 6 21 15l10 32c5 3 8 8 8 14v16c0 4-3 7-7 7h-8c-4 0-7-3-7-7v-5H56v5c0 4-3 7-7 7h-8c-4 0-7-3-7-7v-16c0-6 3-11 8-14zm18-27l-6 20h72l-6-20c-1-4-5-7-9-7H69c-4 0-8 3-9 7zm-2 36a7 7 0 100 14 7 7 0 000-14zm64 0a7 7 0 100 14 7 7 0 000-14z' fill='%23ffffff'/%3E%3C/svg%3E">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg: #F2F2F7;
+      --card: #FFFFFF;
+      --text: #000000;
+      --text-sec: #8E8E93;
+      --blue: #007AFF;
+      --green: #34C759;
+      --orange: #FF9500;
+      --red: #FF3B30;
+      --border: #E5E5EA;
+      --input-bg: #F2F2F7;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overscroll-behavior-y: none;
+    }
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: rgba(242, 242, 247, 0.9);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 0.5px solid rgba(0, 0, 0, 0.12);
+      padding-top: env(safe-area-inset-top);
+    }
+    .navbar-inner {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+    }
+    .nav-title {
+      font-size: 17px;
+      font-weight: 600;
+      text-align: center;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .nav-btn {
+      background: none;
+      border: none;
+      color: var(--blue);
+      font-size: 16px;
+      font-weight: 500;
+      padding: 6px 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      min-width: 68px;
+    }
+    .nav-btn.right {
+      justify-content: flex-end;
+      font-weight: 600;
+    }
+    .nav-btn.danger {
+      color: var(--red);
+    }
+    .container {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 16px 16px calc(36px + env(safe-area-inset-bottom));
+    }
+    .large-title {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin: 4px 0 16px;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+    .section-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-sec);
+      letter-spacing: 0.5px;
+      margin: 18px 0 8px 6px;
+    }
+    .btn-primary {
+      width: 100%;
+      background: var(--blue);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-primary:active {
+      opacity: 0.85;
+    }
+    .btn-primary:disabled {
+      opacity: 0.5;
+    }
+    .btn-secondary {
+      width: 100%;
+      background: rgba(0, 122, 255, 0.1);
+      color: var(--blue);
+      border: none;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-danger-soft {
+      width: 100%;
+      background: rgba(255, 59, 48, 0.1);
+      color: var(--red);
+      border: none;
+      border-radius: 12px;
+      padding: 13px 16px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 44px 20px;
+      margin-top: 20px;
+    }
+    .empty-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 20px;
+      background: rgba(0, 122, 255, 0.12);
+      color: var(--blue);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .empty-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0 0 8px;
+    }
+    .empty-desc {
+      font-size: 15px;
+      color: var(--text-sec);
+      line-height: 1.45;
+      margin: 0 0 24px;
+    }
+    .vehicle-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+    }
+    .vehicle-avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 14px;
+      background: rgba(0, 122, 255, 0.1);
+      color: var(--blue);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .vehicle-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .vehicle-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .vehicle-name {
+      font-size: 17px;
+      font-weight: 600;
+      margin: 0 0 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .plate-badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--bg);
+      color: #3A3A3C;
+      padding: 2px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      letter-spacing: 0.5px;
+    }
+    .vehicle-total {
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .vehicle-total-amount {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .vehicle-total-sub {
+      font-size: 11px;
+      color: var(--text-sec);
+    }
+    .alert-banner {
+      background: #FFF8EB;
+      border: 1px solid #FFD68A;
+      border-radius: 14px;
+      padding: 13px 14px;
+      margin-bottom: 14px;
+    }
+    .alert-banner.urgent {
+      background: #FFF1F0;
+      border-color: #FFA8A3;
+    }
+    .alert-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #B25E00;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .alert-banner.urgent .alert-title {
+      color: #C91C13;
+    }
+    .alert-item {
+      font-size: 13px;
+      color: #3A3A3C;
+      padding: 4px 0;
+      border-top: 0.5px solid rgba(0, 0, 0, 0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .alert-item:first-of-type {
+      border-top: none;
+    }
+    .badge-days {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 99px;
+      background: var(--orange);
+      color: #FFFFFF;
+      white-space: nowrap;
+    }
+    .badge-days.urgent {
+      background: var(--red);
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .stat-box {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-sec);
+      margin-bottom: 4px;
+    }
+    .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .fixed-row {
+      padding: 12px 0;
+      border-bottom: 0.5px solid var(--border);
+    }
+    .fixed-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .fixed-row:first-child {
+      padding-top: 0;
+    }
+    .fixed-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .fixed-name {
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .fixed-amount {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--blue);
+    }
+    .fixed-meta {
+      font-size: 13px;
+      color: var(--text-sec);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .cal-btn {
+      background: rgba(0, 122, 255, 0.1);
+      color: var(--blue);
+      border: none;
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .chips {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+      scrollbar-width: none;
+    }
+    .chips::-webkit-scrollbar {
+      display: none;
+    }
+    .chip {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 99px;
+      padding: 6px 13px;
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .chip.active {
+      background: var(--blue);
+      color: #FFFFFF;
+      border-color: var(--blue);
+    }
+    .expense-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 0.5px solid var(--border);
+      cursor: pointer;
+    }
+    .expense-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .expense-item:first-child {
+      padding-top: 0;
+    }
+    .expense-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 3px;
+    }
+    .expense-sub {
+      font-size: 12px;
+      color: var(--text-sec);
+    }
+    .invoice-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 5px;
+      background: rgba(0, 122, 255, 0.1);
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 7px;
+      border: none;
+      cursor: pointer;
+    }
+    .form-group {
+      margin-bottom: 14px;
+    }
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #3A3A3C;
+      margin-bottom: 6px;
+    }
+    .form-input, .form-select {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 12px 13px;
+      font-size: 16px;
+      color: var(--text);
+      outline: none;
+    }
+    .form-input:focus, .form-select:focus {
+      background: #FFFFFF;
+      border-color: var(--blue);
+    }
+    .photo-picker {
+      width: 96px;
+      height: 96px;
+      border-radius: 22px;
+      background: var(--input-bg);
+      border: 1.5px dashed #C7C7CC;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 14px;
+      cursor: pointer;
+      overflow: hidden;
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      gap: 4px;
+    }
+    .photo-picker img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .auth-box {
+      max-width: 400px;
+      margin: 28px auto 0;
+    }
+    .auth-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: #E5E5EA;
+      padding: 3px;
+      border-radius: 10px;
+      margin-bottom: 18px;
+    }
+    .auth-tab {
+      border: none;
+      background: transparent;
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-sec);
+      cursor: pointer;
+    }
+    .auth-tab.active {
+      background: #FFFFFF;
+      color: var(--text);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .msg-error {
+      background: #FFF1F0;
+      color: var(--red);
+      border: 1px solid #FFA8A3;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+    .msg-ok {
+      background: #EDFFF2;
+      color: #1E7E34;
+      border: 1px solid #9EE2B2;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      color: #FFFFFF;
+    }
+    .modal-body {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: auto;
+      padding: 12px;
+    }
+    .modal-body img {
+      max-width: 100%;
+      max-height: 100%;
+      border-radius: 8px;
+      transition: transform 0.2s ease;
+    }
+    .modal-body iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #FFFFFF;
+      border-radius: 8px;
+    }
+    .loader-wrap {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-sec);
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    // =========================================================================
+    // CONFIGURACION DE SUPABASE (Pega aqui tus credenciales una sola vez)
+    // =========================================================================
+    var SUPABASE_URL = "PEGA_AQUI_TU_PROJECT_URL";
+    var SUPABASE_ANON_KEY = "PEGA_AQUI_TU_ANON_KEY";
+    var BUCKET_NAME = "garaje-archivos";
+
+    var sb = null;
+    var state = {
+      session: null,
+      loading: true,
+      saving: false,
+      authMode: "login",
+      authError: "",
+      authSuccess: "",
+      view: "list",
+      vehicles: [],
+      expenses: [],
+      selectedVehicleId: null,
+      editingVehicleId: null,
+      editingExpenseId: null,
+      categoryFilter: "Todas",
+      tempPhotoFile: null,
+      tempPhotoPreview: "",
+      tempInvoiceFile: null,
+      tempInvoiceName: "",
+      tempInvoiceUrl: "",
+      tempInvoiceType: "",
+      viewer: null,
+      zoomed: false
+    };
+
+    var CATEGORIES = [
+      "Mantenimiento",
+      "Reparaci\u00f3n",
+      "Combustible",
+      "Neum\u00e1ticos",
+      "ITV / Tasas",
+      "Limpieza",
+      "Otros"
+    ];
+
+    var REMINDER_OPTIONS = [
+      { value: -1, label: "Sin aviso" },
+      { value: 0, label: "El mismo d\u00eda" },
+      { value: 3, label: "3 d\u00edas antes" },
+      { value: 7, label: "7 d\u00edas antes" },
+      { value: 15, label: "15 d\u00edas antes" },
+      { value: 30, label: "1 mes antes" },
+      { value: 60, label: "2 meses antes" }
+    ];
+
+    function esc(str) {
+      if (str === null || str === undefined) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function formatMoney(num) {
+      var n = parseFloat(num) || 0;
+      return n.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " \u20ac";
+    }
+
+    function formatDateES(dateStr) {
+      if (!dateStr) return "Sin fecha";
+      var parts = dateStr.split("-");
+      if (parts.length !== 3) return dateStr;
+      return parts[2] + "/" + parts[1] + "/" + parts[0];
+    }
+
+    function genId() {
+      return Date.now().toString(36) + "_" + Math.random().toString(36).substring(2, 8);
+    }
+
+    function getDaysUntilAnnual(dateStr) {
+      if (!dateStr) return null;
+      var parts = dateStr.split("-");
+      if (parts.length !== 3) return null;
+      var month = parseInt(parts[1], 10) - 1;
+      var day = parseInt(parts[2], 10);
+      var now = new Date();
+      var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      var target = new Date(now.getFullYear(), month, day);
+      if (target < today) {
+        target = new Date(now.getFullYear() + 1, month, day);
+      }
+      var diffMs = target.getTime() - today.getTime();
+      return Math.round(diffMs / (1000 * 60 * 60 * 24));
+    }
+
+    function getActiveReminders() {
+      var list = [];
+      for (var i = 0; i < state.vehicles.length; i++) {
+        var v = state.vehicles[i];
+        var checks = [
+          { type: "Seguro", date: v.seguro_fecha, lead: parseInt(v.seguro_aviso, 10), amount: v.seguro_importe },
+          { type: "Impuesto circulaci\u00f3n", date: v.impuesto_fecha, lead: parseInt(v.impuesto_aviso, 10), amount: v.impuesto_importe },
+          { type: "ITV", date: v.itv_fecha, lead: parseInt(v.itv_aviso, 10), amount: 0 }
+        ];
+        for (var j = 0; j < checks.length; j++) {
+          var c = checks[j];
+          if (c.date && !isNaN(c.lead) && c.lead >= 0) {
+            var days = getDaysUntilAnnual(c.date);
+            if (days !== null && days <= c.lead) {
+              list.push({
+                vehicleId: v.id,
+                vehicleName: v.nombre,
+                type: c.type,
+                days: days,
+                date: c.date,
+                amount: c.amount
+              });
+            }
+          }
+        }
+      }
+      list.sort(function(a, b) { return a.days - b.days; });
+      return list;
+    }
+
+    function downloadICS(vehicleName, concept, dateStr, leadDays, amount) {
+      if (!dateStr) return;
+      var parts = dateStr.split("-");
+      var month = parseInt(parts[1], 10) - 1;
+      var day = parseInt(parts[2], 10);
+      var now = new Date();
+      var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      var target = new Date(now.getFullYear(), month, day);
+      if (target < today) {
+        target = new Date(now.getFullYear() + 1, month, day);
+      }
+      var y = target.getFullYear();
+      var m = String(target.getMonth() + 1).padStart(2, "0");
+      var d = String(target.getDate()).padStart(2, "0");
+      var dtStart = y + m + d;
+
+      var nextDay = new Date(target.getTime() + 86400000);
+      var dtEnd = nextDay.getFullYear() + String(nextDay.getMonth() + 1).padStart(2, "0") + String(nextDay.getDate()).padStart(2, "0");
+
+      var alarmDays = (leadDays !== null && leadDays >= 0) ? leadDays : 7;
+      var desc = "Vencimiento anual de " + concept + " para " + vehicleName;
+      if (parseFloat(amount) > 0) {
+        desc += " (Importe estimado: " + formatMoney(amount) + ")";
+      }
+
+      var ics = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Mi Garaje//App iOS//ES",
+        "BEGIN:VEVENT",
+        "UID:" + genId() + "@migaraje.app",
+        "DTSTAMP:" + dtStart + "T090000Z",
+        "DTSTART;VALUE=DATE:" + dtStart,
+        "DTEND;VALUE=DATE:" + dtEnd,
+        "RRULE:FREQ=YEARLY",
+        "SUMMARY:" + concept + " - " + vehicleName,
+        "DESCRIPTION:" + desc,
+        "BEGIN:VALARM",
+        "TRIGGER:-P" + alarmDays + "D",
+        "ACTION:DISPLAY",
+        "DESCRIPTION:Recordatorio: " + concept + " (" + vehicleName + ")",
+        "END:VALARM",
+        "END:VEVENT",
+        "END:VCALENDAR"
+      ].join("\r\n");
+
+      var blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "recordatorio_" + concept.toLowerCase().replace(/\s+/g, "_") + ".ics";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+    }
+
+    function compressImage(file, maxSize, quality) {
+      return new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          var img = new Image();
+          img.onload = function() {
+            var w = img.width;
+            var h = img.height;
+            if (w > maxSize || h > maxSize) {
+              if (w > h) {
+                h = Math.round(h * maxSize / w);
+                w = maxSize;
+              } else {
+                w = Math.round(w * maxSize / h);
+                h = maxSize;
+              }
+            }
+            var canvas = document.createElement("canvas");
+            canvas.width = w;
+            canvas.height = h;
+            var ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, w, h);
+            canvas.toBlob(function(blob) {
+              resolve(blob || file);
+            }, "image/jpeg", quality);
+          };
+          img.onerror = function() { resolve(file); };
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function uploadFileToSupabase(file, folder) {
+      var userId = state.session.user.id;
+      var isImage = file.type && file.type.indexOf("image/") === 0;
+      var uploadBlob = file;
+      var ext = "bin";
+
+      if (isImage) {
+        var maxPx = folder === "vehiculos" ? 500 : 1400;
+        uploadBlob = await compressImage(file, maxPx, 0.8);
+        ext = "jpg";
+      } else if (file.name && file.name.indexOf(".") !== -1) {
+        ext = file.name.split(".").pop().toLowerCase();
+      }
+
+      var filePath = userId + "/" + folder + "/" + genId() + "." + ext;
+      var res = await sb.storage.from(BUCKET_NAME).upload(filePath, uploadBlob, {
+        contentType: isImage ? "image/jpeg" : (file.type || "application/octet-stream"),
+        upsert: true
+      });
+      if (res.error) throw res.error;
+
+      var pub = sb.storage.from(BUCKET_NAME).getPublicUrl(filePath);
+      return pub.data.publicUrl;
+    }
+
+    async function loadUserData() {
+      if (!state.session) return;
+      state.loading = true;
+      render();
+      try {
+        var vRes = await sb.from("vehiculos").select("*").order("created_at", { ascending: true });
+        if (vRes.error) throw vRes.error;
+        var eRes = await sb.from("gastos").select("*").order("fecha", { ascending: false });
+        if (eRes.error) throw eRes.error;
+        state.vehicles = vRes.data || [];
+        state.expenses = eRes.data || [];
+      } catch (err) {
+        alert("Error al cargar datos de la nube: " + (err.message || err));
+      } finally {
+        state.loading = false;
+        render();
+      }
+    }
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      var email = document.getElementById("auth-email").value.trim();
+      var password = document.getElementById("auth-pass").value;
+      if (!email || !password) return;
+
+      state.saving = true;
+      state.authError = "";
+      state.authSuccess = "";
+      render();
+
+      try {
+        if (state.authMode === "login") {
+          var res = await sb.auth.signInWithPassword({ email: email, password: password });
+          if (res.error) throw res.error;
+          state.session = res.data.session;
+          await loadUserData();
+        } else {
+          var reg = await sb.auth.signUp({ email: email, password: password });
+          if (reg.error) throw reg.error;
+          if (reg.data && reg.data.session) {
+            state.session = reg.data.session;
+            await loadUserData();
+          } else {
+            state.authSuccess = "Cuenta creada correctamente. Revisa tu correo para confirmarla o inicia sesi\u00f3n.";
+            state.authMode = "login";
+          }
+        }
+      } catch (err) {
+        state.authError = err.message || "No se pudo completar la autenticaci\u00f3n.";
+      } finally {
+        state.saving = false;
+        render();
+      }
+    }
+
+    async function handleLogout() {
+      if (!confirm("\u00bfCerrar sesi\u00f3n en este dispositivo?")) return;
+      await sb.auth.signOut();
+      state.session = null;
+      state.vehicles = [];
+      state.expenses = [];
+      state.view = "list";
+      render();
+    }
+
+    function openVehicleForm(vehicleId) {
+      state.editingVehicleId = vehicleId || null;
+      state.tempPhotoFile = null;
+      if (vehicleId) {
+        var v = state.vehicles.find(function(x) { return x.id === vehicleId; });
+        state.tempPhotoPreview = v ? (v.foto_url || "") : "";
+      } else {
+        state.tempPhotoPreview = "";
+      }
+      state.view = "vehicleForm";
+      render();
+    }
+
+    function onVehiclePhotoSelected(input) {
+      if (!input.files || !input.files[0]) return;
+      var file = input.files[0];
+      state.tempPhotoFile = file;
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        state.tempPhotoPreview = e.target.result;
+        render();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function saveVehicle(e) {
+      e.preventDefault();
+      if (state.saving) return;
+      var nombre = document.getElementById("v-nombre").value.trim();
+      if (!nombre) return;
+
+      state.saving = true;
+      render();
+
+      try {
+        var existing = state.editingVehicleId
+          ? state.vehicles.find(function(x) { return x.id === state.editingVehicleId; })
+          : null;
+
+        var fotoUrl = existing ? (existing.foto_url || "") : "";
+        if (state.tempPhotoFile) {
+          fotoUrl = await uploadFileToSupabase(state.tempPhotoFile, "vehiculos");
+        }
+
+        var payload = {
+          id: existing ? existing.id : genId(),
+          user_id: state.session.user.id,
+          nombre: nombre,
+          matricula: document.getElementById("v-matricula").value.trim().toUpperCase(),
+          foto_url: fotoUrl,
+          seguro_importe: parseFloat(document.getElementById("v-seg-imp").value) || 0,
+          seguro_fecha: document.getElementById("v-seg-fec").value || "",
+          seguro_aviso: parseInt(document.getElementById("v-seg-avi").value, 10),
+          impuesto_importe: parseFloat(document.getElementById("v-imp-imp").value) || 0,
+          impuesto_fecha: document.getElementById("v-imp-fec").value || "",
+          impuesto_aviso: parseInt(document.getElementById("v-imp-avi").value, 10),
+          itv_fecha: document.getElementById("v-itv-fec").value || "",
+          itv_aviso: parseInt(document.getElementById("v-itv-avi").value, 10)
+        };
+
+        var res = await sb.from("vehiculos").upsert(payload);
+        if (res.error) throw res.error;
+
+        await loadUserData();
+        state.selectedVehicleId = payload.id;
+        state.view = "detail";
+      } catch (err) {
+        alert("Error al guardar el veh\u00edculo: " + (err.message || err));
+      } finally {
+        state.saving = false;
+        render();
+      }
+    }
+
+    async function deleteVehicle(vehicleId) {
+      if (!confirm("\u00bfEliminar este veh\u00edculo y todos sus gastos asociados? Esta acci\u00f3n no se puede deshacer.")) return;
+      state.saving = true;
+      render();
+      try {
+        var res = await sb.from("vehiculos").delete().eq("id", vehicleId);
+        if (res.error) throw res.error;
+        await loadUserData();
+        state.selectedVehicleId = null;
+        state.view = "list";
+      } catch (err) {
+        alert("Error al eliminar: " + (err.message || err));
+      } finally {
+        state.saving = false;
+        render();
+      }
+    }
+
+    function openExpenseForm(expenseId) {
+      state.editingExpenseId = expenseId || null;
+      state.tempInvoiceFile = null;
+      if (expenseId) {
+        var exp = state.expenses.find(function(x) { return x.id === expenseId; });
+        state.tempInvoiceName = exp ? (exp.factura_nombre || "") : "";
+        state.tempInvoiceUrl = exp ? (exp.factura_url || "") : "";
+        state.tempInvoiceType = exp ? (exp.factura_tipo || "") : "";
+      } else {
+        state.tempInvoiceName = "";
+        state.tempInvoiceUrl = "";
+        state.tempInvoiceType = "";
+      }
+      state.view = "expenseForm";
+      render();
+    }
+
+    function onInvoiceSelected(input) {
+      if (!input.files || !input.files[0]) return;
+      var file = input.files[0];
+      state.tempInvoiceFile = file;
+      state.tempInvoiceName = file.name || "Factura adjunta";
+      state.tempInvoiceType = file.type || "image/jpeg";
+      render();
+    }
+
+    function clearInvoiceAttachment() {
+      state.tempInvoiceFile = null;
+      state.tempInvoiceName = "";
+      state.tempInvoiceUrl = "";
+      state.tempInvoiceType = "";
+      render();
+    }
+
+    async function saveExpense(e) {
+      e.preventDefault();
+      if (state.saving) return;
+      var concepto = document.getElementById("e-concepto").value.trim();
+      var importe = parseFloat(document.getElementById("e-importe").value);
+      if (!concepto || isNaN(importe)) return;
+
+      state.saving = true;
+      render();
+
+      try {
+        var existing = state.editingExpenseId
+          ? state.expenses.find(function(x) { return x.id === state.editingExpenseId; })
+          : null;
+
+        var facturaUrl = state.tempInvoiceUrl;
+        var facturaNombre = state.tempInvoiceName;
+        var facturaTipo = state.tempInvoiceType;
+
+        if (state.tempInvoiceFile) {
+          facturaUrl = await uploadFileToSupabase(state.tempInvoiceFile, "facturas");
+        }
+
+        var kmVal = document.getElementById("e-km").value;
+        var payload = {
+          id: existing ? existing.id : genId(),
+          user_id: state.session.user.id,
+          vehiculo_id: state.selectedVehicleId,
+          concepto: concepto,
+          categoria: document.getElementById("e-categoria").value,
+          importe: importe,
+          fecha: document.getElementById("e-fecha").value || new Date().toISOString().slice(0, 10),
+          km: kmVal ? parseInt(kmVal, 10) : null,
+          notas: document.getElementById("e-notas").value.trim(),
+          factura_url: facturaUrl || "",
+          factura_nombre: facturaNombre || "",
+          factura_tipo: facturaTipo || ""
+        };
+
+        var res = await sb.from("gastos").upsert(payload);
+        if (res.error) throw res.error;
+
+        await loadUserData();
+        state.view = "detail";
+      } catch (err) {
+        alert("Error al guardar el gasto: " + (err.message || err));
+      } finally {
+        state.saving = false;
+        render();
+      }
+    }
+
+    async function deleteExpense(expenseId) {
+      if (!confirm("\u00bfEliminar este gasto?")) return;
+      state.saving = true;
+      render();
+      try {
+        var res = await sb.from("gastos").delete().eq("id", expenseId);
+        if (res.error) throw res.error;
+        await loadUserData();
+        state.view = "detail";
+      } catch (err) {
+        alert("Error al eliminar gasto: " + (err.message || err));
+      } finally {
+        state.saving = false;
+        render();
+      }
+    }
+
+    function openInvoiceViewer(ev, url, name, type) {
+      if (ev) ev.stopPropagation();
+      state.zoomed = false;
+      state.viewer = { url: url, name: name || "Factura", type: type || "" };
+      render();
+    }
+
+    function closeInvoiceViewer() {
+      state.viewer = null;
+      state.zoomed = false;
+      render();
+    }
+
+    function toggleZoom() {
+      state.zoomed = !state.zoomed;
+      render();
+    }
+
+    function renderConfigMissing() {
+      return '' +
+        '<div class="navbar"><div class="navbar-inner"><div class="nav-title">Mi Garaje</div></div></div>' +
+        '<div class="container">' +
+          '<div class="card empty-state">' +
+            '<div class="empty-icon">' +
+              '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>' +
+            '</div>' +
+            '<h2 class="empty-title">Falta conectar Supabase</h2>' +
+            '<p class="empty-desc">Edita el archivo HTML y pega tu <b>Project URL</b> y tu <b>anon key</b> en las primeras l\u00edneas del c\u00f3digo antes de subirlo a tiiny.host.</p>' +
+          '</div>' +
+        '</div>';
+    }
+
+    function renderAuth() {
+      var isLogin = state.authMode === "login";
+      return '' +
+        '<div class="container">' +
+          '<div class="auth-box">' +
+            '<div style="text-align:center; margin-bottom:20px;">' +
+              '<div class="empty-icon" style="margin-bottom:12px;">' +
+                '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14v-5l-2-5H7l-2 5v5z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/></svg>' +
+              '</div>' +
+              '<h1 style="font-size:26px; font-weight:700; margin:0 0 4px;">Mi Garaje</h1>' +
+              '<p style="font-size:14px; color:var(--text-sec); margin:0;">Tus veh\u00edculos, gastos y facturas en la nube</p>' +
+            '</div>' +
+            '<div class="card">' +
+              '<div class="auth-tabs">' +
+                '<button type="button" class="auth-tab ' + (isLogin ? "active" : "") + '" onclick="switchAuthMode(\'login\')">Iniciar sesi\u00f3n</button>' +
+                '<button type="button" class="auth-tab ' + (!isLogin ? "active" : "") + '" onclick="switchAuthMode(\'signup\')">Crear cuenta</button>' +
+              '</div>' +
+              (state.authError ? '<div class="msg-error">' + esc(state.authError) + '</div>' : '') +
+              (state.authSuccess ? '<div class="msg-ok">' + esc(state.authSuccess) + '</div>' : '') +
+              '<form onsubmit="handleAuthSubmit(event)">' +
+                '<div class="form-group">' +
+                  '<label class="form-label">Correo electr\u00f3nico</label>' +
+                  '<input id="auth-email" type="email" class="form-input" placeholder="tu@email.com" required autocomplete="email">' +
+                '</div>' +
+                '<div class="form-group">' +
+                  '<label class="form-label">Contrase\u00f1a</label>' +
+                  '<input id="auth-pass" type="password" class="form-input" placeholder="M\u00ednimo 6 caracteres" minlength="6" required autocomplete="' + (isLogin ? "current-password" : "new-password") + '">' +
+                '</div>' +
+                '<button type="submit" class="btn-primary" ' + (state.saving ? "disabled" : "") + '>' +
+                  (state.saving ? "Conectando..." : (isLogin ? "Entrar a mi garaje" : "Registrarme")) +
+                '</button>' +
+              '</form>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    }
+
+    function switchAuthMode(mode) {
+      state.authMode = mode;
+      state.authError = "";
+      state.authSuccess = "";
+      render();
+    }
+
+    function renderList() {
+      var reminders = getActiveReminders();
+      var hasUrgent = reminders.some(function(r) { return r.days <= 3; });
+
+      var html = '' +
+        '<div class="navbar"><div class="navbar-inner">' +
+          '<button class="nav-btn danger" onclick="handleLogout()">Salir</button>' +
+          '<div class="nav-title">Mi Garaje</div>' +
+          '<button class="nav-btn right" onclick="openVehicleForm(null)">+ Veh\u00edculo</button>' +
+        '</div></div>' +
+        '<div class="container">' +
+          '<h1 class="large-title">Mi Garaje</h1>';
+
+      if (state.loading) {
+        html += '<div class="loader-wrap">Sincronizando tu garaje...</div></div>';
+        return html;
+      }
+
+      if (reminders.length > 0) {
+        html += '<div class="alert-banner ' + (hasUrgent ? "urgent" : "") + '">' +
+          '<div class="alert-title">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>' +
+            'Pr\u00f3ximos vencimientos' +
+          '</div>';
+        for (var r = 0; r < reminders.length; r++) {
+          var rem = reminders[r];
+          var dayLabel = rem.days === 0 ? "\u00a1Hoy!" : (rem.days === 1 ? "Ma\u00f1ana" : "En " + rem.days + " d\u00edas");
+          html += '<div class="alert-item" style="cursor:pointer;" onclick="openDetail(\'' + rem.vehicleId + '\')">' +
+            '<span><b>' + esc(rem.vehicleName) + '</b> &middot; ' + esc(rem.type) + ' (' + formatDateES(rem.date) + ')</span>' +
+            '<span class="badge-days ' + (rem.days <= 3 ? "urgent" : "") + '">' + dayLabel + '</span>' +
+          '</div>';
+        }
+        html += '</div>';
+      }
+
+      if (state.vehicles.length === 0) {
+        html += '' +
+          '<div class="card empty-state">' +
+            '<div class="empty-icon">' +
+              '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14v-5l-2-5H7l-2 5v5z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/></svg>' +
+            '</div>' +
+            '<h2 class="empty-title">Tu garaje est\u00e1 vac\u00edo</h2>' +
+            '<p class="empty-desc">A\u00f1ade tu primer coche o moto para controlar el seguro, impuestos, ITV y todas las facturas del taller.</p>' +
+            '<button class="btn-primary" onclick="openVehicleForm(null)">+ A\u00f1adir primer veh\u00edculo</button>' +
+          '</div>';
+      } else {
+        for (var i = 0; i < state.vehicles.length; i++) {
+          var v = state.vehicles[i];
+          var vExpenses = state.expenses.filter(function(e) { return e.vehiculo_id === v.id; });
+          var varTotal = vExpenses.reduce(function(sum, e) { return sum + (parseFloat(e.importe) || 0); }, 0);
+          var fixedTotal = (parseFloat(v.seguro_importe) || 0) + (parseFloat(v.impuesto_importe) || 0);
+          var grandTotal = varTotal + fixedTotal;
+
+          var avatarHtml = v.foto_url
+            ? '<img src="' + esc(v.foto_url) + '" alt="Foto">'
+            : '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14v-5l-2-5H7l-2 5v5z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/></svg>';
+
+          html += '' +
+            '<div class="card vehicle-card" onclick="openDetail(\'' + v.id + '\')">' +
+              '<div class="vehicle-avatar">' + avatarHtml + '</div>' +
+              '<div class="vehicle-info">' +
+                '<div class="vehicle-name">' + esc(v.nombre) + '</div>' +
+                (v.matricula ? '<span class="plate-badge">' + esc(v.matricula) + '</span>' : '<span style="font-size:13px;color:var(--text-sec);">Sin matr\u00edcula</span>') +
+              '</div>' +
+              '<div class="vehicle-total">' +
+                '<div class="vehicle-total-amount">' + formatMoney(grandTotal) + '</div>' +
+                '<div class="vehicle-total-sub">' + vExpenses.length + ' gastos</div>' +
+              '</div>' +
+            '</div>';
+        }
+      }
+
+      html += '</div>';
+      return html;
+    }
+
+    function openDetail(vehicleId) {
+      state.selectedVehicleId = vehicleId;
+      state.categoryFilter = "Todas";
+      state.view = "detail";
+      render();
+    }
+
+    function setCategoryFilter(cat) {
+      state.categoryFilter = cat;
+      render();
+    }
+
+    function renderDetail() {
+      var v = state.vehicles.find(function(x) { return x.id === state.selectedVehicleId; });
+      if (!v) {
+        state.view = "list";
+        return renderList();
+      }
+
+      var allExp = state.expenses.filter(function(e) { return e.vehiculo_id === v.id; });
+      var filteredExp = state.categoryFilter === "Todas"
+        ? allExp
+        : allExp.filter(function(e) { return e.categoria === state.categoryFilter; });
+
+      var fixedTotal = (parseFloat(v.seguro_importe) || 0) + (parseFloat(v.impuesto_importe) || 0);
+      var varTotal = allExp.reduce(function(sum, e) { return sum + (parseFloat(e.importe) || 0); }, 0);
+
+      var avatarHtml = v.foto_url
+        ? '<img src="' + esc(v.foto_url) + '" alt="Foto">'
+        : '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14v-5l-2-5H7l-2 5v5z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/></svg>';
+
+      function renderFixedItem(label, amount, dateStr, leadDays, showAmount) {
+        var days = getDaysUntilAnnual(dateStr);
+        var badge = "";
+        if (dateStr && days !== null && !isNaN(leadDays) && leadDays >= 0 && days <= leadDays) {
+          var dTxt = days === 0 ? "\u00a1Hoy!" : (days === 1 ? "Ma\u00f1ana" : "En " + days + " d\u00edas");
+          badge = ' <span class="badge-days ' + (days <= 3 ? "urgent" : "") + '">' + dTxt + '</span>';
+        }
+        var calBtn = dateStr
+          ? '<button type="button" class="cal-btn" onclick="downloadICS(\'' + esc(v.nombre).replace(/'/g, "\\'") + '\', \'' + esc(label) + '\', \'' + dateStr + '\', ' + (isNaN(leadDays) ? 7 : leadDays) + ', ' + (parseFloat(amount) || 0) + ')">+ Calendario iPhone</button>'
+          : '';
+        return '' +
+          '<div class="fixed-row">' +
+            '<div class="fixed-top">' +
+              '<span class="fixed-name">' + esc(label) + badge + '</span>' +
+              (showAmount ? '<span class="fixed-amount">' + formatMoney(amount) + '</span>' : '') +
+            '</div>' +
+            '<div class="fixed-meta">' +
+              '<span>Fecha anual: <b>' + formatDateES(dateStr) + '</b></span>' +
+              calBtn +
+            '</div>' +
+          '</div>';
+      }
+
+      var html = '' +
+        '<div class="navbar"><div class="navbar-inner">' +
+          '<button class="nav-btn" onclick="goBackToList()">&lsaquo; Garaje</button>' +
+          '<div class="nav-title">' + esc(v.nombre) + '</div>' +
+          '<button class="nav-btn right" onclick="openVehicleForm(\'' + v.id + '\')">Editar</button>' +
+        '</div></div>' +
+        '<div class="container">' +
+          '<div class="card" style="display:flex; align-items:center; gap:14px;">' +
+            '<div class="vehicle-avatar" style="width:68px; height:68px;">' + avatarHtml + '</div>' +
+            '<div>' +
+              '<div style="font-size:20px; font-weight:700; margin-bottom:4px;">' + esc(v.nombre) + '</div>' +
+              (v.matricula ? '<span class="plate-badge">' + esc(v.matricula) + '</span>' : '') +
+            '</div>' +
+          '</div>' +
+
+          '<div class="stats-grid">' +
+            '<div class="stat-box">' +
+              '<div class="stat-label">Fijos anuales</div>' +
+              '<div class="stat-value">' + formatMoney(fixedTotal) + '</div>' +
+            '</div>' +
+            '<div class="stat-box">' +
+              '<div class="stat-label">Mantenimiento / Gastos</div>' +
+              '<div class="stat-value">' + formatMoney(varTotal) + '</div>' +
+            '</div>' +
+          '</div>' +
+
+          '<div class="section-label">Datos fijos anuales y avisos</div>' +
+          '<div class="card">' +
+            renderFixedItem("Seguro anual", v.seguro_importe, v.seguro_fecha, parseInt(v.seguro_aviso, 10), true) +
+            renderFixedItem("Impuesto circulaci\u00f3n", v.impuesto_importe, v.impuesto_fecha, parseInt(v.impuesto_aviso, 10), true) +
+            renderFixedItem("Pr\u00f3xima ITV", 0, v.itv_fecha, parseInt(v.itv_aviso, 10), false) +
+          '</div>' +
+
+          '<div style="display:flex; justify-content:space-between; align-items:center; margin:18px 0 8px;">' +
+            '<div class="section-label" style="margin:0 0 0 6px;">Historial de gastos (' + allExp.length + ')</div>' +
+            '<button class="cal-btn" style="font-size:13px; padding:6px 12px;" onclick="openExpenseForm(null)">+ A\u00f1adir gasto</button>' +
+          '</div>' +
+
+          '<div class="chips">' +
+            '<button class="chip ' + (state.categoryFilter === "Todas" ? "active" : "") + '" onclick="setCategoryFilter(\'Todas\')">Todas</button>';
+
+      for (var c = 0; c < CATEGORIES.length; c++) {
+        var cat = CATEGORIES[c];
+        html += '<button class="chip ' + (state.categoryFilter === cat ? "active" : "") + '" onclick="setCategoryFilter(\'' + cat + '\')">' + cat + '</button>';
+      }
+
+      html += '</div><div class="card">';
+
+      if (filteredExp.length === 0) {
+        html += '<div style="text-align:center; padding:24px 10px; color:var(--text-sec); font-size:14px;">No hay gastos registrados en esta categor\u00eda.</div>';
+      } else {
+        for (var k = 0; k < filteredExp.length; k++) {
+          var exp = filteredExp[k];
+          var meta = formatDateES(exp.fecha) + " &middot; " + esc(exp.categoria);
+          if (exp.km) meta += " &middot; " + Number(exp.km).toLocaleString("es-ES") + " km";
+
+          var invBtn = "";
+          if (exp.factura_url) {
+            invBtn = '<div><button type="button" class="invoice-pill" onclick="openInvoiceViewer(event, \'' + esc(exp.factura_url) + '\', \'' + esc(exp.factura_nombre || "Factura").replace(/'/g, "\\'") + '\', \'' + esc(exp.factura_tipo || "") + '\')">' +
+              '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' +
+              'Ver factura</button></div>';
+          }
+
+          html += '' +
+            '<div class="expense-item" onclick="openExpenseForm(\'' + exp.id + '\')">' +
+              '<div style="min-width:0; flex:1;">' +
+                '<div class="expense-title">' + esc(exp.concepto) + '</div>' +
+                '<div class="expense-sub">' + meta + '</div>' +
+                (exp.notas ? '<div class="expense-sub" style="margin-top:2px;">' + esc(exp.notas) + '</div>' : '') +
+                invBtn +
+              '</div>' +
+              '<div style="font-size:16px; font-weight:700; white-space:nowrap;">' + formatMoney(exp.importe) + '</div>' +
+            '</div>';
+        }
+      }
+
+      html += '</div></div>';
+      return html;
+    }
+
+    function goBackToList() {
+      state.view = "list";
+      render();
+    }
+
+    function renderReminderSelect(id, selectedVal) {
+      var val = (selectedVal !== null && selectedVal !== undefined && !isNaN(selectedVal)) ? Number(selectedVal) : 15;
+      var out = '<select id="' + id + '" class="form-select">';
+      for (var i = 0; i < REMINDER_OPTIONS.length; i++) {
+        var opt = REMINDER_OPTIONS[i];
+        out += '<option value="' + opt.value + '" ' + (opt.value === val ? "selected" : "") + '>' + opt.label + '</option>';
+      }
+      out += '</select>';
+      return out;
+    }
+
+    function renderVehicleForm() {
+      var v = state.editingVehicleId
+        ? state.vehicles.find(function(x) { return x.id === state.editingVehicleId; })
+        : null;
+
+      var photoContent = state.tempPhotoPreview
+        ? '<img src="' + esc(state.tempPhotoPreview) + '" alt="Vista previa">'
+        : '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>A\u00f1adir foto</span>';
+
+      return '' +
+        '<div class="navbar"><div class="navbar-inner">' +
+          '<button class="nav-btn" onclick="' + (v ? "openDetail('" + v.id + "')" : "goBackToList()") + '">Cancelar</button>' +
+          '<div class="nav-title">' + (v ? "Editar veh\u00edculo" : "Nuevo veh\u00edculo") + '</div>' +
+          '<div style="min-width:68px;"></div>' +
+        '</div></div>' +
+        '<div class="container">' +
+          '<form onsubmit="saveVehicle(event)">' +
+            '<div class="card">' +
+              '<label class="photo-picker">' +
+                photoContent +
+                '<input type="file" accept="image/*" style="display:none;" onchange="onVehiclePhotoSelected(this)">' +
+              '</label>' +
+              '<div class="form-group">' +
+                '<label class="form-label">Nombre / Modelo *</label>' +
+                '<input id="v-nombre" type="text" class="form-input" placeholder="Ej: Seat Le\u00f3n FR" value="' + esc(v ? v.nombre : "") + '" required>' +
+              '</div>' +
+              '<div class="form-group" style="margin-bottom:0;">' +
+                '<label class="form-label">Matr\u00edcula</label>' +
+                '<input id="v-matricula" type="text" class="form-input" placeholder="Ej: 1234 ABC" value="' + esc(v ? v.matricula : "") + '">' +
+              '</div>' +
+            '</div>' +
+
+            '<div class="section-label">Seguro Anual</div>' +
+            '<div class="card">' +
+              '<div class="form-group">' +
+                '<label class="form-label">Importe anual (&euro;)</label>' +
+                '<input id="v-seg-imp" type="number" step="0.01" class="form-input" placeholder="0.00" value="' + (v && v.seguro_importe ? v.seguro_importe : "") + '">' +
+              '</div>' +
+              '<div class="form-group">' +
+                '<label class="form-label">Fecha de renovaci\u00f3n</label>' +
+                '<input id="v-seg-fec" type="date" class="form-input" value="' + esc(v ? v.seguro_fecha : "") + '">' +
+              '</div>' +
+              '<div class="form-group" style="margin-bottom:0;">' +
+                '<label class="form-label">Recordatorio anticipado</label>' +
+                renderReminderSelect("v-seg-avi", v ? v.seguro_aviso : 15) +
+              '</div>' +
+            '</div>' +
+
+            '<div class="section-label">Impuesto de Circulaci\u00f3n</div>' +
+            '<div class="card">' +
+              '<div class="form-group">' +
+                '<label class="form-label">Importe anual (&euro;)</label>' +
+                '<input id="v-imp-imp" type="number" step="0.01" class="form-input" placeholder="0.00" value="' + (v && v.impuesto_importe ? v.impuesto_importe : "") + '">' +
+              '</div>' +
+              '<div class="form-group">' +
+                '<label class="form-label">Fecha anual de pago</label>' +
+                '<input id="v-imp-fec" type="date" class="form-input" value="' + esc(v ? v.impuesto_fecha : "") + '">' +
+              '</div>' +
+              '<div class="form-group" style="margin-bottom:0;">' +
+                '<label class="form-label">Recordatorio anticipado</label>' +
+                renderReminderSelect("v-imp-avi", v ? v.impuesto_aviso : 15) +
+              '</div>' +
+            '</div>' +
+
+            '<div class="section-label">Inspecci\u00f3n T\u00e9cnica (ITV)</div>' +
+            '<div class="card">' +
+              '<div class="form-group">' +
+                '<label class="form-label">Fecha pr\u00f3xima ITV</label>' +
+                '<input id="v-itv-fec" type="date" class="form-input" value="' + esc(v ? v.itv_fecha : "") + '">' +
+              '</div>' +
+              '<div class="form-group" style="margin-bottom:0;">' +
+                '<label class="form-label">Recordatorio anticipado</label>' +
+                renderReminderSelect("v-itv-avi", v ? v.itv_aviso : 15) +
+              '</div>' +
+            '</div>' +
+
+            '<button type="submit" class="btn-primary" ' + (state.saving ? "disabled" : "") + '>' +
+              (state.saving ? "Guardando en la nube..." : "Guardar veh\u00edculo") +
+            '</button>' +
+            (v ? '<button type="button" class="btn-danger-soft" onclick="deleteVehicle(\'' + v.id + '\')">Eliminar veh\u00edculo</button>' : '') +
+          '</form>' +
+        '</div>';
+    }
+
+    function renderExpenseForm() {
+      var exp = state.editingExpenseId
+        ? state.expenses.find(function(x) { return x.id === state.editingExpenseId; })
+        : null;
+      var todayStr = new Date().toISOString().slice(0, 10);
+
+      var catOptions = "";
+      for (var i = 0; i < CATEGORIES.length; i++) {
+        var c = CATEGORIES[i];
+        var sel = exp ? (exp.categoria === c) : (i === 0);
+        catOptions += '<option value="' + c + '" ' + (sel ? "selected" : "") + '>' + c + '</option>';
+      }
+
+      var hasAttachment = Boolean(state.tempInvoiceName || state.tempInvoiceUrl);
+      var attachmentHtml = hasAttachment
+        ? '<div style="display:flex; align-items:center; justify-content:space-between; background:var(--input-bg); padding:10px 12px; border-radius:10px;">' +
+            '<span style="font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + esc(state.tempInvoiceName || "Documento adjunto") + '</span>' +
+            '<button type="button" style="background:none; border:none; color:var(--red); font-weight:600; font-size:13px; cursor:pointer;" onclick="clearInvoiceAttachment()">Quitar</button>' +
+          '</div>'
+        : '<label class="btn-secondary" style="cursor:pointer;">' +
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>' +
+            'Subir foto o PDF de factura' +
+            '<input type="file" accept="image/*,application/pdf" style="display:none;" onchange="onInvoiceSelected(this)">' +
+          '</label>';
+
+      return '' +
+        '<div class="navbar"><div class="navbar-inner">' +
+          '<button class="nav-btn" onclick="openDetail(\'' + state.selectedVehicleId + '\')">Cancelar</button>' +
+          '<div class="nav-title">' + (exp ? "Editar gasto" : "Nuevo gasto") + '</div>' +
+          '<div style="min-width:68px;"></div>' +
+        '</div></div>' +
+        '<div class="container">' +
+          '<form onsubmit="saveExpense(event)">' +
+            '<div class="card">' +
+              '<div class="form-group">' +
+                '<label class="form-label">Concepto *</label>' +
+                '<input id="e-concepto" type="text" class="form-input" placeholder="Ej: Cambio de aceite y filtros" value="' + esc(exp ? exp.concepto : "") + '" required>' +
+              '</div>' +
+              '<div class="form-group">' +
+                '<label class="form-label">Categor\u00eda</label>' +
+                '<select id="e-categoria" class="form-select">' + catOptions + '</select>' +
+              '</div>' +
+              '<div class="form-group">' +
+                '<label class="form-label">Importe (&euro;) *</label>' +
+                '<input id="e-importe" type="number" step="0.01" class="form-input" placeholder="0.00" value="' + (exp ? exp.importe : "") + '" required>' +
+              '</div>' +
+              '<div class="form-group">' +
+                '<label class="form-label">Fecha</label>' +
+                '<input id="e-fecha" type="date" class="form-input" value="' + esc(exp ? exp.fecha : todayStr) + '">' +
+              '</div>' +
+              '<div class="form-group">' +
+                '<label class="form-label">Kilometraje (opcional)</label>' +
+                '<input id="e-km" type="number" class="form-input" placeholder="Ej: 85400" value="' + (exp && exp.km ? exp.km : "") + '">' +
+              '</div>' +
+              '<div class="form-group">' +
+                '<label class="form-label">Notas (taller, detalles...)</label>' +
+                '<input id="e-notas" type="text" class="form-input" placeholder="Opcional" value="' + esc(exp ? exp.notas : "") + '">' +
+              '</div>' +
+              '<div class="form-group" style="margin-bottom:0;">' +
+                '<label class="form-label">Adjuntar factura o ticket</label>' +
+                attachmentHtml +
+              '</div>' +
+            '</div>' +
+            '<button type="submit" class="btn-primary" ' + (state.saving ? "disabled" : "") + '>' +
+              (state.saving ? "Subiendo y guardando..." : "Guardar gasto") +
+            '</button>' +
+            (exp ? '<button type="button" class="btn-danger-soft" onclick="deleteExpense(\'' + exp.id + '\')">Eliminar gasto</button>' : '') +
+          '</form>' +
+        '</div>';
+    }
+
+    function renderViewerModal() {
+      if (!state.viewer) return "";
+      var isPdf = (state.viewer.type && state.viewer.type.indexOf("pdf") !== -1) ||
+                  (state.viewer.url && state.viewer.url.toLowerCase().indexOf(".pdf") !== -1);
+
+      var content = isPdf
+        ? '<iframe src="' + esc(state.viewer.url) + '"></iframe>'
+        : '<img src="' + esc(state.viewer.url) + '" style="transform:scale(' + (state.zoomed ? "1.8" : "1") + '); cursor:zoom-in;" onclick="toggleZoom()" alt="Factura">';
+
+      return '' +
+        '<div class="modal-overlay">' +
+          '<div class="modal-header">' +
+            '<span style="font-size:15px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:60%;">' + esc(state.viewer.name) + '</span>' +
+            '<div style="display:flex; gap:12px;">' +
+              (!isPdf ? '<button class="cal-btn" style="background:rgba(255,255,255,0.2); color:#fff;" onclick="toggleZoom()">' + (state.zoomed ? "Alejar" : "Zoom") + '</button>' : '') +
+              '<a class="cal-btn" style="background:rgba(255,255,255,0.2); color:#fff; text-decoration:none;" href="' + esc(state.viewer.url) + '" target="_blank" rel="noopener">Abrir</a>' +
+              '<button class="cal-btn" style="background:#FF3B30; color:#fff;" onclick="closeInvoiceViewer()">Cerrar</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="modal-body">' + content + '</div>' +
+        '</div>';
+    }
+
+    function render() {
+      var root = document.getElementById("app");
+      if (!SUPABASE_URL || SUPABASE_URL.indexOf("http") !== 0 || !SUPABASE_ANON_KEY || SUPABASE_ANON_KEY.indexOf("PEGA_AQUI") !== -1) {
+        root.innerHTML = renderConfigMissing();
+        return;
+      }
+      if (!state.session) {
+        root.innerHTML = renderAuth();
+        return;
+      }
+
+      var screen = "";
+      if (state.view === "detail") screen = renderDetail();
+      else if (state.view === "vehicleForm") screen = renderVehicleForm();
+      else if (state.view === "expenseForm") screen = renderExpenseForm();
+      else screen = renderList();
+
+      root.innerHTML = screen + renderViewerModal();
+    }
+
+    async function initApp() {
+      if (SUPABASE_URL && SUPABASE_URL.indexOf("http") === 0 && SUPABASE_ANON_KEY && SUPABASE_ANON_KEY.indexOf("PEGA_AQUI") === -1) {
+        sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        var res = await sb.auth.getSession();
+        if (res.data && res.data.session) {
+          state.session = res.data.session;
+          await loadUserData();
+          return;
+        }
+      }
+      state.loading = false;
+      render();
+    }
+
+    initApp();
+  </script>
+</body>
+</html>
