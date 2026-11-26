@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Mi Garaje">
@@ -694,9 +694,15 @@
     }
 
     function parseDecimal(val) {
+      if (typeof val === "number") return isNaN(val) ? 0 : val;
       if (val === null || val === undefined || val === "") return 0;
-      var normalized = String(val).replace(",", ".").trim();
-      var num = parseFloat(normalized);
+      var s = String(val).replace(/[\s\u20ac]/g, "");
+      if (s.indexOf(",") !== -1) {
+        s = s.replace(/\./g, "").replace(",", ".");
+      } else if (/^\d{1,3}(\.\d{3})+$/.test(s)) {
+        s = s.replace(/\./g, "");
+      }
+      var num = parseFloat(s);
       return isNaN(num) ? 0 : num;
     }
 
@@ -732,18 +738,61 @@
       return Math.round(diffMs / (1000 * 60 * 60 * 24));
     }
 
+    function getDaysUntil(dateStr) {
+      if (!dateStr) return null;
+      var parts = dateStr.split("-");
+      if (parts.length !== 3) return null;
+      var now = new Date();
+      var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      var target = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      return Math.round((target.getTime() - today.getTime()) / 86400000);
+    }
+
+    function daysLabel(days) {
+      if (days < 0) {
+        var n = Math.abs(days);
+        return "Vencida hace " + n + (n === 1 ? " d\u00eda" : " d\u00edas");
+      }
+      if (days === 0) return "\u00a1Hoy!";
+      if (days === 1) return "Ma\u00f1ana";
+      return "En " + days + " d\u00edas";
+    }
+
+    function todayLocal() {
+      var d = new Date();
+      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    }
+
+    function storagePathFromUrl(url) {
+      if (!url) return null;
+      var marker = "/" + BUCKET_NAME + "/";
+      var i = url.indexOf(marker);
+      if (i === -1) return null;
+      try { return decodeURIComponent(url.slice(i + marker.length).split("?")[0]); } catch (e) { return null; }
+    }
+
+    async function removeStoredFiles(urls) {
+      var paths = [];
+      for (var i = 0; i < urls.length; i++) {
+        var p = storagePathFromUrl(urls[i]);
+        if (p) paths.push(p);
+      }
+      if (!paths.length) return;
+      try { await sb.storage.from(BUCKET_NAME).remove(paths); } catch (e) { console.warn("No se pudieron borrar archivos:", e); }
+    }
+
     function getVehicleAlerts(v) {
       var alerts = [];
       var checks = [
-        { type: "Seguro", date: v.seguro_fecha, lead: parseInt(v.seguro_aviso, 10), amount: v.seguro_importe },
-        { type: "Impuesto", date: v.impuesto_fecha, lead: parseInt(v.impuesto_aviso, 10), amount: v.impuesto_importe },
-        { type: "ITV", date: v.itv_fecha, lead: parseInt(v.itv_aviso, 10), amount: 0 }
+        { type: "Seguro", date: v.seguro_fecha, lead: parseInt(v.seguro_aviso, 10), amount: v.seguro_importe, annual: true },
+        { type: "Impuesto", date: v.impuesto_fecha, lead: parseInt(v.impuesto_aviso, 10), amount: v.impuesto_importe, annual: true },
+        { type: "ITV", date: v.itv_fecha, lead: parseInt(v.itv_aviso, 10), amount: 0, annual: false }
       ];
       for (var j = 0; j < checks.length; j++) {
         var c = checks[j];
         var leadVal = isNaN(c.lead) ? 15 : c.lead;
         if (c.date && leadVal >= 0) {
-          var days = getDaysUntilAnnual(c.date);
+          var days = c.annual ? getDaysUntilAnnual(c.date) : getDaysUntil(c.date);
           if (days !== null && days <= leadVal) {
             alerts.push({
               vehicleId: v.id,
@@ -772,57 +821,73 @@
       return list;
     }
 
-    function downloadICS(vehicleName, concept, dateStr, leadDays, amount) {
+    function downloadICSFor(vehicleId, kind) {
+      var v = state.vehicles.find(function(x) { return x.id === vehicleId; });
+      if (!v) return;
+      var cfg = {
+        seguro: { concept: "Seguro", date: v.seguro_fecha, lead: v.seguro_aviso, amount: v.seguro_importe, annual: true },
+        impuesto: { concept: "Impuesto circulaci\u00f3n", date: v.impuesto_fecha, lead: v.impuesto_aviso, amount: v.impuesto_importe, annual: true },
+        itv: { concept: "ITV", date: v.itv_fecha, lead: v.itv_aviso, amount: 0, annual: false }
+      }[kind];
+      if (!cfg || !cfg.date) return;
+      var lead = parseInt(cfg.lead, 10);
+      downloadICS(v.nombre, cfg.concept, cfg.date, (isNaN(lead) || lead < 0) ? 7 : lead, cfg.amount, cfg.annual);
+    }
+
+    function icsEscape(text) {
+      return String(text).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+    }
+
+    function downloadICS(vehicleName, concept, dateStr, leadDays, amount, annual) {
       if (!dateStr) return;
       var parts = dateStr.split("-");
+      var year = parseInt(parts[0], 10);
       var month = parseInt(parts[1], 10) - 1;
       var day = parseInt(parts[2], 10);
       var now = new Date();
       var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      var target = new Date(now.getFullYear(), month, day);
-      if (target < today) {
+      var target = new Date(annual ? now.getFullYear() : year, month, day);
+      if (annual && target < today) {
         target = new Date(now.getFullYear() + 1, month, day);
       }
-      var y = target.getFullYear();
-      var m = String(target.getMonth() + 1).padStart(2, "0");
-      var d = String(target.getDate()).padStart(2, "0");
-      var dtStart = y + m + d;
-
-      var nextDay = new Date(target.getTime() + 86400000);
-      var dtEnd = nextDay.getFullYear() + String(nextDay.getMonth() + 1).padStart(2, "0") + String(nextDay.getDate()).padStart(2, "0");
-
+      function ymd(d) {
+        return d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0");
+      }
+      var dtStart = ymd(target);
+      var dtEnd = ymd(new Date(target.getFullYear(), target.getMonth(), target.getDate() + 1));
+      var stamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
       var alarmDays = (leadDays !== null && leadDays >= 0) ? leadDays : 7;
-      var desc = "Vencimiento anual de " + concept + " para " + vehicleName;
+      var desc = (annual ? "Vencimiento anual de " : "Vencimiento de ") + concept + " para " + vehicleName;
       if (parseDecimal(amount) > 0) {
         desc += " (Importe estimado: " + formatMoney(amount) + ")";
       }
-
-      var ics = [
+      var lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
         "PRODID:-//Mi Garaje//App iOS//ES",
         "BEGIN:VEVENT",
         "UID:" + genId() + "@migaraje.app",
-        "DTSTAMP:" + dtStart + "T090000Z",
+        "DTSTAMP:" + stamp,
         "DTSTART;VALUE=DATE:" + dtStart,
-        "DTEND;VALUE=DATE:" + dtEnd,
-        "RRULE:FREQ=YEARLY",
-        "SUMMARY:" + concept + " - " + vehicleName,
-        "DESCRIPTION:" + desc,
+        "DTEND;VALUE=DATE:" + dtEnd
+      ];
+      if (annual) lines.push("RRULE:FREQ=YEARLY");
+      lines.push(
+        "SUMMARY:" + icsEscape(concept + " - " + vehicleName),
+        "DESCRIPTION:" + icsEscape(desc),
         "BEGIN:VALARM",
         "TRIGGER:-P" + alarmDays + "D",
         "ACTION:DISPLAY",
-        "DESCRIPTION:Recordatorio: " + concept + " (" + vehicleName + ")",
+        "DESCRIPTION:" + icsEscape("Recordatorio: " + concept + " (" + vehicleName + ")"),
         "END:VALARM",
         "END:VEVENT",
         "END:VCALENDAR"
-      ].join("\r\n");
-
-      var blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+      );
+      var blob = new Blob([lines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
       var url = URL.createObjectURL(blob);
       var a = document.createElement("a");
       a.href = url;
-      a.download = "recordatorio_" + concept.toLowerCase().replace(/\s+/g, "_") + ".ics";
+      a.download = "recordatorio_" + concept.toLowerCase().replace(/[^a-z0-9]+/g, "_") + ".ics";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -910,6 +975,7 @@
     async function handleAuthSubmit(e) {
       e.preventDefault();
       var email = document.getElementById("auth-email").value.trim();
+      state.authEmail = email;
       var password = document.getElementById("auth-pass").value;
       if (!email || !password) return;
 
@@ -1076,6 +1142,7 @@
           throw new Error("Supabase no confirm\u00f3 el guardado. Revisa los permisos RLS de la tabla vehiculos.");
         }
 
+        if (existing && existing.foto_url && existing.foto_url !== fotoUrl) await removeStoredFiles([existing.foto_url]);
         state.vehicleDraft = null;
         await loadUserData();
         state.selectedVehicleId = targetId;
@@ -1093,8 +1160,14 @@
       state.saving = true;
       render();
       try {
+        var vh = state.vehicles.find(function(x) { return x.id === vehicleId; });
+        var files = state.expenses.filter(function(x) { return x.vehiculo_id === vehicleId && x.factura_url; }).map(function(x) { return x.factura_url; });
+        if (vh && vh.foto_url) files.push(vh.foto_url);
+        var delExp = await sb.from("gastos").delete().eq("vehiculo_id", vehicleId);
+        if (delExp.error) throw delExp.error;
         var res = await sb.from("vehiculos").delete().eq("id", vehicleId);
         if (res.error) throw res.error;
+        await removeStoredFiles(files);
         await loadUserData();
         state.selectedVehicleId = null;
         state.view = "list";
@@ -1108,6 +1181,7 @@
 
     function openExpenseForm(expenseId) {
       state.editingExpenseId = expenseId || null;
+      state.expenseDraft = null;
       state.tempInvoiceFile = null;
       if (expenseId) {
         var exp = state.expenses.find(function(x) { return x.id === expenseId; });
@@ -1123,9 +1197,16 @@
       render();
     }
 
+    function readExpenseFormFields(formEl) {
+      if (!formEl) return state.expenseDraft;
+      function val(n) { var el = formEl.querySelector('[name="' + n + '"]'); return el ? el.value : ""; }
+      return { concepto: val("concepto"), categoria: val("categoria"), importe: val("importe"), fecha: val("fecha"), km: val("km"), notas: val("notas") };
+    }
+
     function onInvoiceSelected(input) {
       if (!input.files || !input.files[0]) return;
       var file = input.files[0];
+      state.expenseDraft = readExpenseFormFields(input.form);
       state.tempInvoiceFile = file;
       state.tempInvoiceName = file.name || "Factura adjunta";
       state.tempInvoiceType = file.type || "image/jpeg";
@@ -1133,6 +1214,7 @@
     }
 
     function clearInvoiceAttachment() {
+      state.expenseDraft = readExpenseFormFields(document.getElementById("expense-form"));
       state.tempInvoiceFile = null;
       state.tempInvoiceName = "";
       state.tempInvoiceUrl = "";
@@ -1144,6 +1226,7 @@
       e.preventDefault();
       if (state.saving) return;
       var formEl = e.target;
+      state.expenseDraft = readExpenseFormFields(formEl);
       var concepto = formEl.querySelector('[name="concepto"]').value.trim();
       var importeRaw = formEl.querySelector('[name="importe"]').value;
       if (!concepto || importeRaw === "") return;
@@ -1171,7 +1254,7 @@
           concepto: concepto,
           categoria: formEl.querySelector('[name="categoria"]').value,
           importe: importe,
-          fecha: formEl.querySelector('[name="fecha"]').value || new Date().toISOString().slice(0, 10),
+          fecha: formEl.querySelector('[name="fecha"]').value || todayLocal(),
           km: kmVal ? parseInt(kmVal, 10) : null,
           notas: formEl.querySelector('[name="notas"]').value.trim(),
           factura_url: facturaUrl || "",
@@ -1190,6 +1273,8 @@
         }
         if (res.error) throw res.error;
 
+        if (existing && existing.factura_url && existing.factura_url !== facturaUrl) await removeStoredFiles([existing.factura_url]);
+        state.expenseDraft = null;
         await loadUserData();
         state.view = "detail";
       } catch (err) {
@@ -1205,8 +1290,10 @@
       state.saving = true;
       render();
       try {
+        var old = state.expenses.find(function(x) { return x.id === expenseId; });
         var res = await sb.from("gastos").delete().eq("id", expenseId);
         if (res.error) throw res.error;
+        if (old && old.factura_url) await removeStoredFiles([old.factura_url]);
         await loadUserData();
         state.view = "detail";
       } catch (err) {
@@ -1222,6 +1309,11 @@
       state.zoomed = false;
       state.viewer = { url: url, name: name || "Factura", type: type || "" };
       render();
+    }
+
+    function openInvoiceViewerById(ev, expenseId) {
+      var ex = state.expenses.find(function(x) { return x.id === expenseId; });
+      if (ex && ex.factura_url) openInvoiceViewer(ev, ex.factura_url, ex.factura_nombre, ex.factura_tipo);
     }
 
     function closeInvoiceViewer() {
@@ -1271,7 +1363,7 @@
               '<form onsubmit="handleAuthSubmit(event)">' +
                 '<div class="form-group">' +
                   '<label class="form-label">Correo electr\u00f3nico</label>' +
-                  '<input id="auth-email" type="email" class="form-input" placeholder="tu@email.com" required autocomplete="email">' +
+                  '<input id="auth-email" type="email" class="form-input" placeholder="tu@email.com" value="' + esc(state.authEmail) + '" required autocomplete="email">' +
                 '</div>' +
                 '<div class="form-group">' +
                   '<label class="form-label">Contrase\u00f1a</label>' +
@@ -1335,7 +1427,7 @@
       } else {
         html += '' +
           '<div class="hero-summary">' +
-            '<div class="hero-label">Gasto total acumulado (' + state.vehicles.length + (state.vehicles.length === 1 ? ' veh\u00edculo' : ' veh\u00edculos') + ')</div>' +
+            '<div class="hero-label">Total: fijos de 1 a\u00f1o + gastos (' + state.vehicles.length + (state.vehicles.length === 1 ? ' veh\u00edculo' : ' veh\u00edculos') + ')</div>' +
             '<div class="hero-amount">' + formatMoney(grandTotalAll) + '</div>' +
             '<div class="hero-split">' +
               '<div>' +
@@ -1357,7 +1449,7 @@
             '</div>';
           for (var r = 0; r < reminders.length; r++) {
             var rem = reminders[r];
-            var dayLabel = rem.days === 0 ? "\u00a1Hoy!" : (rem.days === 1 ? "Ma\u00f1ana" : "En " + rem.days + " d\u00edas");
+            var dayLabel = daysLabel(rem.days);
             html += '<div class="alert-item" onclick="openDetail(\'' + rem.vehicleId + '\')">' +
               '<span><b>' + esc(rem.vehicleName) + '</b> &middot; ' + esc(rem.type) + ' (' + formatDateES(rem.date) + ')</span>' +
               '<span class="badge-days ' + (rem.days <= 3 ? "urgent" : "") + '">' + dayLabel + '</span>' +
@@ -1385,7 +1477,7 @@
             alertsRowHtml += '<div class="vehicle-card-alerts">';
             for (var a = 0; a < vAlerts.length; a++) {
               var al = vAlerts[a];
-              var dStr = al.days === 0 ? "\u00a1Hoy!" : (al.days === 1 ? "Ma\u00f1ana" : "en " + al.days + " d\u00edas");
+              var dStr = daysLabel(al.days).toLowerCase();
               alertsRowHtml += '<span class="mini-alert-pill ' + (al.days <= 3 ? "urgent" : "") + '">' +
                 '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>' +
                 esc(al.type) + ' ' + dStr +
@@ -1448,16 +1540,17 @@
         ? '<img src="' + esc(v.foto_url) + '" alt="Foto">'
         : '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14v-5l-2-5H7l-2 5v5z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/></svg>';
 
-      function renderFixedItem(label, amount, dateStr, leadDays, showAmount) {
-        var days = getDaysUntilAnnual(dateStr);
+      function renderFixedItem(label, amount, dateStr, leadDays, showAmount, kind) {
+        var annual = kind !== "itv";
+        var days = annual ? getDaysUntilAnnual(dateStr) : getDaysUntil(dateStr);
         var leadVal = isNaN(leadDays) ? 15 : leadDays;
         var badge = "";
         if (dateStr && days !== null && leadVal >= 0 && days <= leadVal) {
-          var dTxt = days === 0 ? "\u00a1Hoy!" : (days === 1 ? "Ma\u00f1ana" : "En " + days + " d\u00edas");
+          var dTxt = daysLabel(days);
           badge = ' <span class="badge-days ' + (days <= 3 ? "urgent" : "") + '">' + dTxt + '</span>';
         }
         var calBtn = dateStr
-          ? '<button type="button" class="cal-btn" onclick="downloadICS(\'' + esc(v.nombre).replace(/'/g, "\\'") + '\', \'' + esc(label) + '\', \'' + dateStr + '\', ' + (leadVal >= 0 ? leadVal : 7) + ', ' + parseDecimal(amount) + ')">+ Calendario iPhone</button>'
+          ? '<button type="button" class="cal-btn" onclick="downloadICSFor(\'' + v.id + '\', \'' + kind + '\')">+ Calendario iPhone</button>'
           : '';
         return '' +
           '<div class="fixed-row">' +
@@ -1466,7 +1559,7 @@
               (showAmount ? '<span class="fixed-amount">' + formatMoney(amount) + '</span>' : '') +
             '</div>' +
             '<div class="fixed-meta">' +
-              '<span>Fecha anual: <b>' + formatDateES(dateStr) + '</b></span>' +
+              '<span>' + (annual ? "Fecha anual" : "Vence") + ': <b>' + formatDateES(dateStr) + '</b></span>' +
               calBtn +
             '</div>' +
           '</div>';
@@ -1506,9 +1599,9 @@
 
           '<div class="section-label">Datos fijos anuales y avisos</div>' +
           '<div class="card">' +
-            renderFixedItem("Seguro anual", v.seguro_importe, v.seguro_fecha, parseInt(v.seguro_aviso, 10), true) +
-            renderFixedItem("Impuesto circulaci\u00f3n", v.impuesto_importe, v.impuesto_fecha, parseInt(v.impuesto_aviso, 10), true) +
-            renderFixedItem("Pr\u00f3xima ITV", 0, v.itv_fecha, parseInt(v.itv_aviso, 10), false) +
+            renderFixedItem("Seguro anual", v.seguro_importe, v.seguro_fecha, parseInt(v.seguro_aviso, 10), true, "seguro") +
+            renderFixedItem("Impuesto circulaci\u00f3n", v.impuesto_importe, v.impuesto_fecha, parseInt(v.impuesto_aviso, 10), true, "impuesto") +
+            renderFixedItem("Pr\u00f3xima ITV", 0, v.itv_fecha, parseInt(v.itv_aviso, 10), false, "itv") +
           '</div>' +
 
           '<div style="display:flex; justify-content:space-between; align-items:center; margin:18px 0 8px;">' +
@@ -1536,7 +1629,7 @@
 
           var invBtn = "";
           if (exp.factura_url) {
-            invBtn = '<div><button type="button" class="invoice-pill" onclick="openInvoiceViewer(event, \'' + esc(exp.factura_url) + '\', \'' + esc(exp.factura_nombre || "Factura").replace(/'/g, "\\'") + '\', \'' + esc(exp.factura_tipo || "") + '\')">' +
+            invBtn = '<div><button type="button" class="invoice-pill" onclick="openInvoiceViewerById(event, \'' + exp.id + '\')">' +
               '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' +
               'Ver factura</button></div>';
           }
@@ -1661,12 +1754,20 @@
       var exp = state.editingExpenseId
         ? state.expenses.find(function(x) { return x.id === state.editingExpenseId; })
         : null;
-      var todayStr = new Date().toISOString().slice(0, 10);
+      var todayStr = todayLocal();
+      var d = state.expenseDraft || {
+        concepto: exp ? (exp.concepto || "") : "",
+        categoria: exp ? exp.categoria : CATEGORIES[0],
+        importe: (exp && exp.importe !== null && exp.importe !== undefined) ? exp.importe : "",
+        fecha: exp ? (exp.fecha || todayStr) : todayStr,
+        km: (exp && exp.km) ? exp.km : "",
+        notas: exp ? (exp.notas || "") : ""
+      };
 
       var catOptions = "";
       for (var i = 0; i < CATEGORIES.length; i++) {
         var c = CATEGORIES[i];
-        var sel = exp ? (exp.categoria === c) : (i === 0);
+        var sel = (d.categoria || CATEGORIES[0]) === c;
         catOptions += '<option value="' + c + '" ' + (sel ? "selected" : "") + '>' + c + '</option>';
       }
 
@@ -1689,11 +1790,11 @@
           '<div style="min-width:72px;"></div>' +
         '</div></div>' +
         '<div class="container">' +
-          '<form onsubmit="saveExpense(event)">' +
+          '<form id="expense-form" onsubmit="saveExpense(event)">' +
             '<div class="card">' +
               '<div class="form-group">' +
                 '<label class="form-label">Concepto *</label>' +
-                '<input name="concepto" type="text" class="form-input" placeholder="Ej: Cambio de aceite y filtros" value="' + esc(exp ? exp.concepto : "") + '" required>' +
+                '<input name="concepto" type="text" class="form-input" placeholder="Ej: Cambio de aceite y filtros" value="' + esc(d.concepto) + '" required>' +
               '</div>' +
               '<div class="form-group">' +
                 '<label class="form-label">Categor\u00eda</label>' +
@@ -1701,19 +1802,19 @@
               '</div>' +
               '<div class="form-group">' +
                 '<label class="form-label">Importe (&euro;) *</label>' +
-                '<input name="importe" type="text" inputmode="decimal" class="form-input" placeholder="0.00" value="' + (exp ? exp.importe : "") + '" required>' +
+                '<input name="importe" type="text" inputmode="decimal" class="form-input" placeholder="0.00" value="' + esc(d.importe) + '" required>' +
               '</div>' +
               '<div class="form-group">' +
                 '<label class="form-label">Fecha</label>' +
-                '<input name="fecha" type="date" class="form-input" value="' + esc(exp ? exp.fecha : todayStr) + '">' +
+                '<input name="fecha" type="date" class="form-input" value="' + esc(d.fecha) + '">' +
               '</div>' +
               '<div class="form-group">' +
                 '<label class="form-label">Kilometraje (opcional)</label>' +
-                '<input name="km" type="number" class="form-input" placeholder="Ej: 85400" value="' + (exp && exp.km ? exp.km : "") + '">' +
+                '<input name="km" type="number" class="form-input" placeholder="Ej: 85400" value="' + esc(d.km) + '">' +
               '</div>' +
               '<div class="form-group">' +
                 '<label class="form-label">Notas (taller, detalles...)</label>' +
-                '<input name="notas" type="text" class="form-input" placeholder="Opcional" value="' + esc(exp ? exp.notas : "") + '">' +
+                '<input name="notas" type="text" class="form-input" placeholder="Opcional" value="' + esc(d.notas) + '">' +
               '</div>' +
               '<div class="form-group" style="margin-bottom:0;">' +
                 '<label class="form-label">Adjuntar factura o ticket</label>' +
