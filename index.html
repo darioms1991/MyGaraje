@@ -39,7 +39,7 @@
       position: sticky;
       top: 0;
       z-index: 30;
-      background: rgba(242, 242, 247, 0.9);
+      background: rgba(242, 242, 247, 0.92);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border-bottom: 0.5px solid rgba(0, 0, 0, 0.12);
@@ -72,7 +72,7 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      min-width: 68px;
+      min-width: 72px;
     }
     .nav-btn.right {
       justify-content: flex-end;
@@ -84,7 +84,7 @@
     .container {
       max-width: 560px;
       margin: 0 auto;
-      padding: 16px 16px calc(36px + env(safe-area-inset-bottom));
+      padding: 16px 16px calc(40px + env(safe-area-inset-bottom));
     }
     .large-title {
       font-size: 32px;
@@ -94,10 +94,46 @@
     }
     .card {
       background: var(--card);
-      border-radius: 14px;
+      border-radius: 16px;
       padding: 16px;
       margin-bottom: 14px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    }
+    .hero-summary {
+      background: linear-gradient(135deg, #007AFF 0%, #0056CC 100%);
+      color: #FFFFFF;
+      border-radius: 18px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 6px 18px rgba(0, 122, 255, 0.22);
+    }
+    .hero-label {
+      font-size: 13px;
+      opacity: 0.88;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    .hero-amount {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.6px;
+      margin-bottom: 14px;
+    }
+    .hero-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .hero-sub-label {
+      font-size: 11px;
+      opacity: 0.82;
+      margin-bottom: 2px;
+    }
+    .hero-sub-val {
+      font-size: 15px;
+      font-weight: 700;
     }
     .section-label {
       font-size: 12px;
@@ -122,12 +158,8 @@
       justify-content: center;
       gap: 8px;
     }
-    .btn-primary:active {
-      opacity: 0.85;
-    }
-    .btn-primary:disabled {
-      opacity: 0.5;
-    }
+    .btn-primary:active { opacity: 0.85; }
+    .btn-primary:disabled { opacity: 0.5; }
     .btn-secondary {
       width: 100%;
       background: rgba(0, 122, 255, 0.1);
@@ -157,13 +189,13 @@
     }
     .empty-state {
       text-align: center;
-      padding: 44px 20px;
-      margin-top: 20px;
+      padding: 46px 20px;
+      margin-top: 16px;
     }
     .empty-icon {
-      width: 72px;
-      height: 72px;
-      border-radius: 20px;
+      width: 74px;
+      height: 74px;
+      border-radius: 22px;
       background: rgba(0, 122, 255, 0.12);
       color: var(--blue);
       display: flex;
@@ -172,7 +204,7 @@
       margin: 0 auto 16px;
     }
     .empty-title {
-      font-size: 20px;
+      font-size: 21px;
       font-weight: 700;
       margin: 0 0 8px;
     }
@@ -183,15 +215,21 @@
       margin: 0 0 24px;
     }
     .vehicle-card {
+      cursor: pointer;
+      transition: transform 0.12s ease;
+    }
+    .vehicle-card:active {
+      transform: scale(0.99);
+    }
+    .vehicle-card-top {
       display: flex;
       align-items: center;
       gap: 14px;
-      cursor: pointer;
     }
     .vehicle-avatar {
-      width: 60px;
-      height: 60px;
-      border-radius: 14px;
+      width: 62px;
+      height: 62px;
+      border-radius: 15px;
       background: rgba(0, 122, 255, 0.1);
       color: var(--blue);
       display: flex;
@@ -211,8 +249,8 @@
     }
     .vehicle-name {
       font-size: 17px;
-      font-weight: 600;
-      margin: 0 0 3px;
+      font-weight: 700;
+      margin: 0 0 4px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -233,17 +271,42 @@
       flex-shrink: 0;
     }
     .vehicle-total-amount {
-      font-size: 16px;
+      font-size: 17px;
       font-weight: 700;
+      color: var(--text);
     }
     .vehicle-total-sub {
-      font-size: 11px;
+      font-size: 12px;
       color: var(--text-sec);
+      margin-top: 2px;
+    }
+    .vehicle-card-alerts {
+      margin-top: 11px;
+      padding-top: 10px;
+      border-top: 0.5px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .mini-alert-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 9px;
+      border-radius: 8px;
+      background: #FFF4E5;
+      color: #B25E00;
+    }
+    .mini-alert-pill.urgent {
+      background: #FFEBEB;
+      color: #C91C13;
     }
     .alert-banner {
       background: #FFF8EB;
       border: 1px solid #FFD68A;
-      border-radius: 14px;
+      border-radius: 15px;
       padding: 13px 14px;
       margin-bottom: 14px;
     }
@@ -266,12 +329,13 @@
     .alert-item {
       font-size: 13px;
       color: #3A3A3C;
-      padding: 4px 0;
+      padding: 5px 0;
       border-top: 0.5px solid rgba(0, 0, 0, 0.08);
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 8px;
+      cursor: pointer;
     }
     .alert-item:first-of-type {
       border-top: none;
@@ -279,7 +343,7 @@
     .badge-days {
       font-size: 11px;
       font-weight: 700;
-      padding: 2px 7px;
+      padding: 3px 8px;
       border-radius: 99px;
       background: var(--orange);
       color: #FFFFFF;
@@ -296,8 +360,9 @@
     }
     .stat-box {
       background: var(--card);
-      border-radius: 14px;
+      border-radius: 15px;
       padding: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
     }
     .stat-label {
       font-size: 12px;
@@ -518,7 +583,7 @@
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.85);
+      background: rgba(0, 0, 0, 0.88);
       z-index: 100;
       display: flex;
       flex-direction: column;
@@ -659,30 +724,40 @@
       return Math.round(diffMs / (1000 * 60 * 60 * 24));
     }
 
-    function getActiveReminders() {
+    function getVehicleAlerts(v) {
+      var alerts = [];
+      var checks = [
+        { type: "Seguro", date: v.seguro_fecha, lead: parseInt(v.seguro_aviso, 10), amount: v.seguro_importe },
+        { type: "Impuesto", date: v.impuesto_fecha, lead: parseInt(v.impuesto_aviso, 10), amount: v.impuesto_importe },
+        { type: "ITV", date: v.itv_fecha, lead: parseInt(v.itv_aviso, 10), amount: 0 }
+      ];
+      for (var j = 0; j < checks.length; j++) {
+        var c = checks[j];
+        var leadVal = isNaN(c.lead) ? 15 : c.lead;
+        if (c.date && leadVal >= 0) {
+          var days = getDaysUntilAnnual(c.date);
+          if (days !== null && days <= leadVal) {
+            alerts.push({
+              vehicleId: v.id,
+              vehicleName: v.nombre,
+              type: c.type,
+              days: days,
+              date: c.date,
+              amount: c.amount
+            });
+          }
+        }
+      }
+      alerts.sort(function(a, b) { return a.days - b.days; });
+      return alerts;
+    }
+
+    function getAllActiveReminders() {
       var list = [];
       for (var i = 0; i < state.vehicles.length; i++) {
-        var v = state.vehicles[i];
-        var checks = [
-          { type: "Seguro", date: v.seguro_fecha, lead: parseInt(v.seguro_aviso, 10), amount: v.seguro_importe },
-          { type: "Impuesto circulaci\u00f3n", date: v.impuesto_fecha, lead: parseInt(v.impuesto_aviso, 10), amount: v.impuesto_importe },
-          { type: "ITV", date: v.itv_fecha, lead: parseInt(v.itv_aviso, 10), amount: 0 }
-        ];
-        for (var j = 0; j < checks.length; j++) {
-          var c = checks[j];
-          if (c.date && !isNaN(c.lead) && c.lead >= 0) {
-            var days = getDaysUntilAnnual(c.date);
-            if (days !== null && days <= c.lead) {
-              list.push({
-                vehicleId: v.id,
-                vehicleName: v.nombre,
-                type: c.type,
-                days: days,
-                date: c.date,
-                amount: c.amount
-              });
-            }
-          }
+        var vAlerts = getVehicleAlerts(state.vehicles[i]);
+        for (var j = 0; j < vAlerts.length; j++) {
+          list.push(vAlerts[j]);
         }
       }
       list.sort(function(a, b) { return a.days - b.days; });
@@ -1092,7 +1167,7 @@
               '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>' +
             '</div>' +
             '<h2 class="empty-title">Falta conectar Supabase</h2>' +
-            '<p class="empty-desc">Edita el archivo HTML y pega tu <b>Project URL</b> y tu <b>anon key</b> en las primeras l\u00edneas del c\u00f3digo antes de subirlo a tiiny.host.</p>' +
+            '<p class="empty-desc">Edita el archivo HTML y pega tu <b>Project URL</b> y tu <b>anon key</b> en las primeras l\u00edneas del c\u00f3digo antes de publicarlo.</p>' +
           '</div>' +
         '</div>';
     }
@@ -1142,8 +1217,19 @@
     }
 
     function renderList() {
-      var reminders = getActiveReminders();
+      var reminders = getAllActiveReminders();
       var hasUrgent = reminders.some(function(r) { return r.days <= 3; });
+
+      var totalFixedAll = 0;
+      var totalVarAll = 0;
+      for (var t = 0; t < state.vehicles.length; t++) {
+        var tv = state.vehicles[t];
+        totalFixedAll += (parseFloat(tv.seguro_importe) || 0) + (parseFloat(tv.impuesto_importe) || 0);
+      }
+      for (var e = 0; e < state.expenses.length; e++) {
+        totalVarAll += (parseFloat(state.expenses[e].importe) || 0);
+      }
+      var grandTotalAll = totalFixedAll + totalVarAll;
 
       var html = '' +
         '<div class="navbar"><div class="navbar-inner">' +
@@ -1159,23 +1245,6 @@
         return html;
       }
 
-      if (reminders.length > 0) {
-        html += '<div class="alert-banner ' + (hasUrgent ? "urgent" : "") + '">' +
-          '<div class="alert-title">' +
-            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>' +
-            'Pr\u00f3ximos vencimientos' +
-          '</div>';
-        for (var r = 0; r < reminders.length; r++) {
-          var rem = reminders[r];
-          var dayLabel = rem.days === 0 ? "\u00a1Hoy!" : (rem.days === 1 ? "Ma\u00f1ana" : "En " + rem.days + " d\u00edas");
-          html += '<div class="alert-item" style="cursor:pointer;" onclick="openDetail(\'' + rem.vehicleId + '\')">' +
-            '<span><b>' + esc(rem.vehicleName) + '</b> &middot; ' + esc(rem.type) + ' (' + formatDateES(rem.date) + ')</span>' +
-            '<span class="badge-days ' + (rem.days <= 3 ? "urgent" : "") + '">' + dayLabel + '</span>' +
-          '</div>';
-        }
-        html += '</div>';
-      }
-
       if (state.vehicles.length === 0) {
         html += '' +
           '<div class="card empty-state">' +
@@ -1187,28 +1256,83 @@
             '<button class="btn-primary" onclick="openVehicleForm(null)">+ A\u00f1adir primer veh\u00edculo</button>' +
           '</div>';
       } else {
+        // Tarjeta resumen global en portada
+        html += '' +
+          '<div class="hero-summary">' +
+            '<div class="hero-label">Gasto total acumulado (' + state.vehicles.length + (state.vehicles.length === 1 ? ' veh\u00edculo' : ' veh\u00edculos') + ')</div>' +
+            '<div class="hero-amount">' + formatMoney(grandTotalAll) + '</div>' +
+            '<div class="hero-split">' +
+              '<div>' +
+                '<div class="hero-sub-label">Fijos anuales</div>' +
+                '<div class="hero-sub-val">' + formatMoney(totalFixedAll) + '</div>' +
+              '</div>' +
+              '<div>' +
+                '<div class="hero-sub-label">Mantenimiento y otros</div>' +
+                '<div class="hero-sub-val">' + formatMoney(totalVarAll) + '</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+
+        // Banner superior de recordatorios activos
+        if (reminders.length > 0) {
+          html += '<div class="alert-banner ' + (hasUrgent ? "urgent" : "") + '">' +
+            '<div class="alert-title">' +
+              '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>' +
+              'Recordatorios pr\u00f3ximos' +
+            '</div>';
+          for (var r = 0; r < reminders.length; r++) {
+            var rem = reminders[r];
+            var dayLabel = rem.days === 0 ? "\u00a1Hoy!" : (rem.days === 1 ? "Ma\u00f1ana" : "En " + rem.days + " d\u00edas");
+            html += '<div class="alert-item" onclick="openDetail(\'' + rem.vehicleId + '\')">' +
+              '<span><b>' + esc(rem.vehicleName) + '</b> &middot; ' + esc(rem.type) + ' (' + formatDateES(rem.date) + ')</span>' +
+              '<span class="badge-days ' + (rem.days <= 3 ? "urgent" : "") + '">' + dayLabel + '</span>' +
+            '</div>';
+          }
+          html += '</div>';
+        }
+
+        html += '<div class="section-label">Tus veh\u00edculos</div>';
+
         for (var i = 0; i < state.vehicles.length; i++) {
           var v = state.vehicles[i];
-          var vExpenses = state.expenses.filter(function(e) { return e.vehiculo_id === v.id; });
-          var varTotal = vExpenses.reduce(function(sum, e) { return sum + (parseFloat(e.importe) || 0); }, 0);
+          var vExpenses = state.expenses.filter(function(ex) { return ex.vehiculo_id === v.id; });
+          var varTotal = vExpenses.reduce(function(sum, ex) { return sum + (parseFloat(ex.importe) || 0); }, 0);
           var fixedTotal = (parseFloat(v.seguro_importe) || 0) + (parseFloat(v.impuesto_importe) || 0);
           var grandTotal = varTotal + fixedTotal;
+          var vAlerts = getVehicleAlerts(v);
 
           var avatarHtml = v.foto_url
             ? '<img src="' + esc(v.foto_url) + '" alt="Foto">'
             : '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14v-5l-2-5H7l-2 5v5z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/></svg>';
 
+          var alertsRowHtml = "";
+          if (vAlerts.length > 0) {
+            alertsRowHtml += '<div class="vehicle-card-alerts">';
+            for (var a = 0; a < vAlerts.length; a++) {
+              var al = vAlerts[a];
+              var dStr = al.days === 0 ? "\u00a1Hoy!" : (al.days === 1 ? "Ma\u00f1ana" : "en " + al.days + " d\u00edas");
+              alertsRowHtml += '<span class="mini-alert-pill ' + (al.days <= 3 ? "urgent" : "") + '">' +
+                '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>' +
+                esc(al.type) + ' ' + dStr +
+              '</span>';
+            }
+            alertsRowHtml += '</div>';
+          }
+
           html += '' +
             '<div class="card vehicle-card" onclick="openDetail(\'' + v.id + '\')">' +
-              '<div class="vehicle-avatar">' + avatarHtml + '</div>' +
-              '<div class="vehicle-info">' +
-                '<div class="vehicle-name">' + esc(v.nombre) + '</div>' +
-                (v.matricula ? '<span class="plate-badge">' + esc(v.matricula) + '</span>' : '<span style="font-size:13px;color:var(--text-sec);">Sin matr\u00edcula</span>') +
+              '<div class="vehicle-card-top">' +
+                '<div class="vehicle-avatar">' + avatarHtml + '</div>' +
+                '<div class="vehicle-info">' +
+                  '<div class="vehicle-name">' + esc(v.nombre) + '</div>' +
+                  (v.matricula ? '<span class="plate-badge">' + esc(v.matricula) + '</span>' : '<span style="font-size:13px;color:var(--text-sec);">Sin matr\u00edcula</span>') +
+                '</div>' +
+                '<div class="vehicle-total">' +
+                  '<div class="vehicle-total-amount">' + formatMoney(grandTotal) + '</div>' +
+                  '<div class="vehicle-total-sub">' + vExpenses.length + (vExpenses.length === 1 ? ' gasto' : ' gastos') + '</div>' +
+                '</div>' +
               '</div>' +
-              '<div class="vehicle-total">' +
-                '<div class="vehicle-total-amount">' + formatMoney(grandTotal) + '</div>' +
-                '<div class="vehicle-total-sub">' + vExpenses.length + ' gastos</div>' +
-              '</div>' +
+              alertsRowHtml +
             '</div>';
         }
       }
@@ -1243,6 +1367,7 @@
 
       var fixedTotal = (parseFloat(v.seguro_importe) || 0) + (parseFloat(v.impuesto_importe) || 0);
       var varTotal = allExp.reduce(function(sum, e) { return sum + (parseFloat(e.importe) || 0); }, 0);
+      var totalVehicle = fixedTotal + varTotal;
 
       var avatarHtml = v.foto_url
         ? '<img src="' + esc(v.foto_url) + '" alt="Foto">'
@@ -1250,13 +1375,14 @@
 
       function renderFixedItem(label, amount, dateStr, leadDays, showAmount) {
         var days = getDaysUntilAnnual(dateStr);
+        var leadVal = isNaN(leadDays) ? 15 : leadDays;
         var badge = "";
-        if (dateStr && days !== null && !isNaN(leadDays) && leadDays >= 0 && days <= leadDays) {
+        if (dateStr && days !== null && leadVal >= 0 && days <= leadVal) {
           var dTxt = days === 0 ? "\u00a1Hoy!" : (days === 1 ? "Ma\u00f1ana" : "En " + days + " d\u00edas");
           badge = ' <span class="badge-days ' + (days <= 3 ? "urgent" : "") + '">' + dTxt + '</span>';
         }
         var calBtn = dateStr
-          ? '<button type="button" class="cal-btn" onclick="downloadICS(\'' + esc(v.nombre).replace(/'/g, "\\'") + '\', \'' + esc(label) + '\', \'' + dateStr + '\', ' + (isNaN(leadDays) ? 7 : leadDays) + ', ' + (parseFloat(amount) || 0) + ')">+ Calendario iPhone</button>'
+          ? '<button type="button" class="cal-btn" onclick="downloadICS(\'' + esc(v.nombre).replace(/'/g, "\\'") + '\', \'' + esc(label) + '\', \'' + dateStr + '\', ' + (leadVal >= 0 ? leadVal : 7) + ', ' + (parseFloat(amount) || 0) + ')">+ Calendario iPhone</button>'
           : '';
         return '' +
           '<div class="fixed-row">' +
@@ -1278,11 +1404,17 @@
           '<button class="nav-btn right" onclick="openVehicleForm(\'' + v.id + '\')">Editar</button>' +
         '</div></div>' +
         '<div class="container">' +
-          '<div class="card" style="display:flex; align-items:center; gap:14px;">' +
-            '<div class="vehicle-avatar" style="width:68px; height:68px;">' + avatarHtml + '</div>' +
-            '<div>' +
-              '<div style="font-size:20px; font-weight:700; margin-bottom:4px;">' + esc(v.nombre) + '</div>' +
-              (v.matricula ? '<span class="plate-badge">' + esc(v.matricula) + '</span>' : '') +
+          '<div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:14px;">' +
+            '<div style="display:flex; align-items:center; gap:14px; min-width:0;">' +
+              '<div class="vehicle-avatar" style="width:68px; height:68px;">' + avatarHtml + '</div>' +
+              '<div style="min-width:0;">' +
+                '<div style="font-size:20px; font-weight:700; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + esc(v.nombre) + '</div>' +
+                (v.matricula ? '<span class="plate-badge">' + esc(v.matricula) + '</span>' : '') +
+              '</div>' +
+            '</div>' +
+            '<div style="text-align:right; flex-shrink:0;">' +
+              '<div style="font-size:11px; color:var(--text-sec);">Total veh\u00edculo</div>' +
+              '<div style="font-size:18px; font-weight:700; color:var(--blue);">' + formatMoney(totalVehicle) + '</div>' +
             '</div>' +
           '</div>' +
 
@@ -1380,7 +1512,7 @@
         '<div class="navbar"><div class="navbar-inner">' +
           '<button class="nav-btn" onclick="' + (v ? "openDetail('" + v.id + "')" : "goBackToList()") + '">Cancelar</button>' +
           '<div class="nav-title">' + (v ? "Editar veh\u00edculo" : "Nuevo veh\u00edculo") + '</div>' +
-          '<div style="min-width:68px;"></div>' +
+          '<div style="min-width:72px;"></div>' +
         '</div></div>' +
         '<div class="container">' +
           '<form onsubmit="saveVehicle(event)">' +
@@ -1480,7 +1612,7 @@
         '<div class="navbar"><div class="navbar-inner">' +
           '<button class="nav-btn" onclick="openDetail(\'' + state.selectedVehicleId + '\')">Cancelar</button>' +
           '<div class="nav-title">' + (exp ? "Editar gasto" : "Nuevo gasto") + '</div>' +
-          '<div style="min-width:68px;"></div>' +
+          '<div style="min-width:72px;"></div>' +
         '</div></div>' +
         '<div class="container">' +
           '<form onsubmit="saveExpense(event)">' +
