@@ -652,6 +652,7 @@
       editingVehicleId: null,
       editingExpenseId: null,
       categoryFilter: "Todas",
+      vehicleDraft: null,
       tempPhotoFile: null,
       tempPhotoPreview: "",
       tempInvoiceFile: null,
@@ -692,8 +693,15 @@
         .replace(/'/g, "&#039;");
     }
 
+    function parseDecimal(val) {
+      if (val === null || val === undefined || val === "") return 0;
+      var normalized = String(val).replace(",", ".").trim();
+      var num = parseFloat(normalized);
+      return isNaN(num) ? 0 : num;
+    }
+
     function formatMoney(num) {
-      var n = parseFloat(num) || 0;
+      var n = parseDecimal(num);
       return n.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " \u20ac";
     }
 
@@ -785,7 +793,7 @@
 
       var alarmDays = (leadDays !== null && leadDays >= 0) ? leadDays : 7;
       var desc = "Vencimiento anual de " + concept + " para " + vehicleName;
-      if (parseFloat(amount) > 0) {
+      if (parseDecimal(amount) > 0) {
         desc += " (Importe estimado: " + formatMoney(amount) + ")";
       }
 
@@ -945,14 +953,61 @@
       render();
     }
 
+    function readVehicleFormFields(formEl) {
+      var root = formEl || document.getElementById("vehicle-form") || document;
+      function val(name) {
+        var el = root.querySelector('[name="' + name + '"]');
+        return el ? el.value : "";
+      }
+      var segAvi = parseInt(val("seguro_aviso"), 10);
+      var impAvi = parseInt(val("impuesto_aviso"), 10);
+      var itvAvi = parseInt(val("itv_aviso"), 10);
+      return {
+        nombre: val("nombre").trim(),
+        matricula: val("matricula").trim().toUpperCase(),
+        seguro_importe: parseDecimal(val("seguro_importe")),
+        seguro_fecha: val("seguro_fecha") || "",
+        seguro_aviso: isNaN(segAvi) ? 15 : segAvi,
+        impuesto_importe: parseDecimal(val("impuesto_importe")),
+        impuesto_fecha: val("impuesto_fecha") || "",
+        impuesto_aviso: isNaN(impAvi) ? 15 : impAvi,
+        itv_fecha: val("itv_fecha") || "",
+        itv_aviso: isNaN(itvAvi) ? 15 : itvAvi
+      };
+    }
+
     function openVehicleForm(vehicleId) {
       state.editingVehicleId = vehicleId || null;
       state.tempPhotoFile = null;
       if (vehicleId) {
         var v = state.vehicles.find(function(x) { return x.id === vehicleId; });
         state.tempPhotoPreview = v ? (v.foto_url || "") : "";
+        state.vehicleDraft = v ? {
+          nombre: v.nombre || "",
+          matricula: v.matricula || "",
+          seguro_importe: v.seguro_importe || "",
+          seguro_fecha: v.seguro_fecha || "",
+          seguro_aviso: (v.seguro_aviso !== null && v.seguro_aviso !== undefined) ? v.seguro_aviso : 15,
+          impuesto_importe: v.impuesto_importe || "",
+          impuesto_fecha: v.impuesto_fecha || "",
+          impuesto_aviso: (v.impuesto_aviso !== null && v.impuesto_aviso !== undefined) ? v.impuesto_aviso : 15,
+          itv_fecha: v.itv_fecha || "",
+          itv_aviso: (v.itv_aviso !== null && v.itv_aviso !== undefined) ? v.itv_aviso : 15
+        } : null;
       } else {
         state.tempPhotoPreview = "";
+        state.vehicleDraft = {
+          nombre: "",
+          matricula: "",
+          seguro_importe: "",
+          seguro_fecha: "",
+          seguro_aviso: 15,
+          impuesto_importe: "",
+          impuesto_fecha: "",
+          impuesto_aviso: 15,
+          itv_fecha: "",
+          itv_aviso: 15
+        };
       }
       state.view = "vehicleForm";
       render();
@@ -960,6 +1015,7 @@
 
     function onVehiclePhotoSelected(input) {
       if (!input.files || !input.files[0]) return;
+      state.vehicleDraft = readVehicleFormFields(input.form);
       var file = input.files[0];
       state.tempPhotoFile = file;
       var reader = new FileReader();
@@ -973,9 +1029,11 @@
     async function saveVehicle(e) {
       e.preventDefault();
       if (state.saving) return;
-      var nombre = document.getElementById("v-nombre").value.trim();
-      if (!nombre) return;
 
+      var fields = readVehicleFormFields(e.target);
+      if (!fields.nombre) return;
+
+      state.vehicleDraft = fields;
       state.saving = true;
       render();
 
@@ -989,27 +1047,38 @@
           fotoUrl = await uploadFileToSupabase(state.tempPhotoFile, "vehiculos");
         }
 
-        var payload = {
-          id: existing ? existing.id : genId(),
-          user_id: state.session.user.id,
-          nombre: nombre,
-          matricula: document.getElementById("v-matricula").value.trim().toUpperCase(),
+        var recordData = {
+          nombre: fields.nombre,
+          matricula: fields.matricula,
           foto_url: fotoUrl,
-          seguro_importe: parseFloat(document.getElementById("v-seg-imp").value) || 0,
-          seguro_fecha: document.getElementById("v-seg-fec").value || "",
-          seguro_aviso: parseInt(document.getElementById("v-seg-avi").value, 10),
-          impuesto_importe: parseFloat(document.getElementById("v-imp-imp").value) || 0,
-          impuesto_fecha: document.getElementById("v-imp-fec").value || "",
-          impuesto_aviso: parseInt(document.getElementById("v-imp-avi").value, 10),
-          itv_fecha: document.getElementById("v-itv-fec").value || "",
-          itv_aviso: parseInt(document.getElementById("v-itv-avi").value, 10)
+          seguro_importe: fields.seguro_importe,
+          seguro_fecha: fields.seguro_fecha,
+          seguro_aviso: fields.seguro_aviso,
+          impuesto_importe: fields.impuesto_importe,
+          impuesto_fecha: fields.impuesto_fecha,
+          impuesto_aviso: fields.impuesto_aviso,
+          itv_fecha: fields.itv_fecha,
+          itv_aviso: fields.itv_aviso
         };
 
-        var res = await sb.from("vehiculos").upsert(payload);
-        if (res.error) throw res.error;
+        var targetId = existing ? existing.id : genId();
+        var res;
+        if (existing) {
+          res = await sb.from("vehiculos").update(recordData).eq("id", targetId).select();
+        } else {
+          recordData.id = targetId;
+          recordData.user_id = state.session.user.id;
+          res = await sb.from("vehiculos").insert(recordData).select();
+        }
 
+        if (res.error) throw res.error;
+        if (!res.data || res.data.length === 0) {
+          throw new Error("Supabase no confirm\u00f3 el guardado. Revisa los permisos RLS de la tabla vehiculos.");
+        }
+
+        state.vehicleDraft = null;
         await loadUserData();
-        state.selectedVehicleId = payload.id;
+        state.selectedVehicleId = targetId;
         state.view = "detail";
       } catch (err) {
         alert("Error al guardar el veh\u00edculo: " + (err.message || err));
@@ -1074,9 +1143,11 @@
     async function saveExpense(e) {
       e.preventDefault();
       if (state.saving) return;
-      var concepto = document.getElementById("e-concepto").value.trim();
-      var importe = parseFloat(document.getElementById("e-importe").value);
-      if (!concepto || isNaN(importe)) return;
+      var formEl = e.target;
+      var concepto = formEl.querySelector('[name="concepto"]').value.trim();
+      var importeRaw = formEl.querySelector('[name="importe"]').value;
+      if (!concepto || importeRaw === "") return;
+      var importe = parseDecimal(importeRaw);
 
       state.saving = true;
       render();
@@ -1094,23 +1165,29 @@
           facturaUrl = await uploadFileToSupabase(state.tempInvoiceFile, "facturas");
         }
 
-        var kmVal = document.getElementById("e-km").value;
-        var payload = {
-          id: existing ? existing.id : genId(),
-          user_id: state.session.user.id,
+        var kmVal = formEl.querySelector('[name="km"]').value;
+        var recordData = {
           vehiculo_id: state.selectedVehicleId,
           concepto: concepto,
-          categoria: document.getElementById("e-categoria").value,
+          categoria: formEl.querySelector('[name="categoria"]').value,
           importe: importe,
-          fecha: document.getElementById("e-fecha").value || new Date().toISOString().slice(0, 10),
+          fecha: formEl.querySelector('[name="fecha"]').value || new Date().toISOString().slice(0, 10),
           km: kmVal ? parseInt(kmVal, 10) : null,
-          notas: document.getElementById("e-notas").value.trim(),
+          notas: formEl.querySelector('[name="notas"]').value.trim(),
           factura_url: facturaUrl || "",
           factura_nombre: facturaNombre || "",
           factura_tipo: facturaTipo || ""
         };
 
-        var res = await sb.from("gastos").upsert(payload);
+        var targetId = existing ? existing.id : genId();
+        var res;
+        if (existing) {
+          res = await sb.from("gastos").update(recordData).eq("id", targetId).select();
+        } else {
+          recordData.id = targetId;
+          recordData.user_id = state.session.user.id;
+          res = await sb.from("gastos").insert(recordData).select();
+        }
         if (res.error) throw res.error;
 
         await loadUserData();
@@ -1224,10 +1301,10 @@
       var totalVarAll = 0;
       for (var t = 0; t < state.vehicles.length; t++) {
         var tv = state.vehicles[t];
-        totalFixedAll += (parseFloat(tv.seguro_importe) || 0) + (parseFloat(tv.impuesto_importe) || 0);
+        totalFixedAll += parseDecimal(tv.seguro_importe) + parseDecimal(tv.impuesto_importe);
       }
       for (var e = 0; e < state.expenses.length; e++) {
-        totalVarAll += (parseFloat(state.expenses[e].importe) || 0);
+        totalVarAll += parseDecimal(state.expenses[e].importe);
       }
       var grandTotalAll = totalFixedAll + totalVarAll;
 
@@ -1256,7 +1333,6 @@
             '<button class="btn-primary" onclick="openVehicleForm(null)">+ A\u00f1adir primer veh\u00edculo</button>' +
           '</div>';
       } else {
-        // Tarjeta resumen global en portada
         html += '' +
           '<div class="hero-summary">' +
             '<div class="hero-label">Gasto total acumulado (' + state.vehicles.length + (state.vehicles.length === 1 ? ' veh\u00edculo' : ' veh\u00edculos') + ')</div>' +
@@ -1273,7 +1349,6 @@
             '</div>' +
           '</div>';
 
-        // Banner superior de recordatorios activos
         if (reminders.length > 0) {
           html += '<div class="alert-banner ' + (hasUrgent ? "urgent" : "") + '">' +
             '<div class="alert-title">' +
@@ -1296,8 +1371,8 @@
         for (var i = 0; i < state.vehicles.length; i++) {
           var v = state.vehicles[i];
           var vExpenses = state.expenses.filter(function(ex) { return ex.vehiculo_id === v.id; });
-          var varTotal = vExpenses.reduce(function(sum, ex) { return sum + (parseFloat(ex.importe) || 0); }, 0);
-          var fixedTotal = (parseFloat(v.seguro_importe) || 0) + (parseFloat(v.impuesto_importe) || 0);
+          var varTotal = vExpenses.reduce(function(sum, ex) { return sum + parseDecimal(ex.importe); }, 0);
+          var fixedTotal = parseDecimal(v.seguro_importe) + parseDecimal(v.impuesto_importe);
           var grandTotal = varTotal + fixedTotal;
           var vAlerts = getVehicleAlerts(v);
 
@@ -1365,8 +1440,8 @@
         ? allExp
         : allExp.filter(function(e) { return e.categoria === state.categoryFilter; });
 
-      var fixedTotal = (parseFloat(v.seguro_importe) || 0) + (parseFloat(v.impuesto_importe) || 0);
-      var varTotal = allExp.reduce(function(sum, e) { return sum + (parseFloat(e.importe) || 0); }, 0);
+      var fixedTotal = parseDecimal(v.seguro_importe) + parseDecimal(v.impuesto_importe);
+      var varTotal = allExp.reduce(function(sum, e) { return sum + parseDecimal(e.importe); }, 0);
       var totalVehicle = fixedTotal + varTotal;
 
       var avatarHtml = v.foto_url
@@ -1382,7 +1457,7 @@
           badge = ' <span class="badge-days ' + (days <= 3 ? "urgent" : "") + '">' + dTxt + '</span>';
         }
         var calBtn = dateStr
-          ? '<button type="button" class="cal-btn" onclick="downloadICS(\'' + esc(v.nombre).replace(/'/g, "\\'") + '\', \'' + esc(label) + '\', \'' + dateStr + '\', ' + (leadVal >= 0 ? leadVal : 7) + ', ' + (parseFloat(amount) || 0) + ')">+ Calendario iPhone</button>'
+          ? '<button type="button" class="cal-btn" onclick="downloadICS(\'' + esc(v.nombre).replace(/'/g, "\\'") + '\', \'' + esc(label) + '\', \'' + dateStr + '\', ' + (leadVal >= 0 ? leadVal : 7) + ', ' + parseDecimal(amount) + ')">+ Calendario iPhone</button>'
           : '';
         return '' +
           '<div class="fixed-row">' +
@@ -1488,9 +1563,9 @@
       render();
     }
 
-    function renderReminderSelect(id, selectedVal) {
+    function renderReminderSelect(name, selectedVal) {
       var val = (selectedVal !== null && selectedVal !== undefined && !isNaN(selectedVal)) ? Number(selectedVal) : 15;
-      var out = '<select id="' + id + '" class="form-select">';
+      var out = '<select name="' + name + '" class="form-select">';
       for (var i = 0; i < REMINDER_OPTIONS.length; i++) {
         var opt = REMINDER_OPTIONS[i];
         out += '<option value="' + opt.value + '" ' + (opt.value === val ? "selected" : "") + '>' + opt.label + '</option>';
@@ -1500,9 +1575,8 @@
     }
 
     function renderVehicleForm() {
-      var v = state.editingVehicleId
-        ? state.vehicles.find(function(x) { return x.id === state.editingVehicleId; })
-        : null;
+      var d = state.vehicleDraft || {};
+      var isEdit = Boolean(state.editingVehicleId);
 
       var photoContent = state.tempPhotoPreview
         ? '<img src="' + esc(state.tempPhotoPreview) + '" alt="Vista previa">'
@@ -1510,12 +1584,12 @@
 
       return '' +
         '<div class="navbar"><div class="navbar-inner">' +
-          '<button class="nav-btn" onclick="' + (v ? "openDetail('" + v.id + "')" : "goBackToList()") + '">Cancelar</button>' +
-          '<div class="nav-title">' + (v ? "Editar veh\u00edculo" : "Nuevo veh\u00edculo") + '</div>' +
+          '<button class="nav-btn" onclick="' + (isEdit ? "openDetail('" + state.editingVehicleId + "')" : "goBackToList()") + '">Cancelar</button>' +
+          '<div class="nav-title">' + (isEdit ? "Editar veh\u00edculo" : "Nuevo veh\u00edculo") + '</div>' +
           '<div style="min-width:72px;"></div>' +
         '</div></div>' +
         '<div class="container">' +
-          '<form onsubmit="saveVehicle(event)">' +
+          '<form id="vehicle-form" onsubmit="saveVehicle(event)">' +
             '<div class="card">' +
               '<label class="photo-picker">' +
                 photoContent +
@@ -1523,11 +1597,11 @@
               '</label>' +
               '<div class="form-group">' +
                 '<label class="form-label">Nombre / Modelo *</label>' +
-                '<input id="v-nombre" type="text" class="form-input" placeholder="Ej: Seat Le\u00f3n FR" value="' + esc(v ? v.nombre : "") + '" required>' +
+                '<input name="nombre" type="text" class="form-input" placeholder="Ej: Seat Le\u00f3n FR" value="' + esc(d.nombre || "") + '" required>' +
               '</div>' +
               '<div class="form-group" style="margin-bottom:0;">' +
                 '<label class="form-label">Matr\u00edcula</label>' +
-                '<input id="v-matricula" type="text" class="form-input" placeholder="Ej: 1234 ABC" value="' + esc(v ? v.matricula : "") + '">' +
+                '<input name="matricula" type="text" class="form-input" placeholder="Ej: 1234 ABC" value="' + esc(d.matricula || "") + '">' +
               '</div>' +
             '</div>' +
 
@@ -1535,15 +1609,15 @@
             '<div class="card">' +
               '<div class="form-group">' +
                 '<label class="form-label">Importe anual (&euro;)</label>' +
-                '<input id="v-seg-imp" type="number" step="0.01" class="form-input" placeholder="0.00" value="' + (v && v.seguro_importe ? v.seguro_importe : "") + '">' +
+                '<input name="seguro_importe" type="text" inputmode="decimal" class="form-input" placeholder="0.00" value="' + esc(d.seguro_importe || "") + '">' +
               '</div>' +
               '<div class="form-group">' +
                 '<label class="form-label">Fecha de renovaci\u00f3n</label>' +
-                '<input id="v-seg-fec" type="date" class="form-input" value="' + esc(v ? v.seguro_fecha : "") + '">' +
+                '<input name="seguro_fecha" type="date" class="form-input" value="' + esc(d.seguro_fecha || "") + '">' +
               '</div>' +
               '<div class="form-group" style="margin-bottom:0;">' +
                 '<label class="form-label">Recordatorio anticipado</label>' +
-                renderReminderSelect("v-seg-avi", v ? v.seguro_aviso : 15) +
+                renderReminderSelect("seguro_aviso", d.seguro_aviso) +
               '</div>' +
             '</div>' +
 
@@ -1551,15 +1625,15 @@
             '<div class="card">' +
               '<div class="form-group">' +
                 '<label class="form-label">Importe anual (&euro;)</label>' +
-                '<input id="v-imp-imp" type="number" step="0.01" class="form-input" placeholder="0.00" value="' + (v && v.impuesto_importe ? v.impuesto_importe : "") + '">' +
+                '<input name="impuesto_importe" type="text" inputmode="decimal" class="form-input" placeholder="0.00" value="' + esc(d.impuesto_importe || "") + '">' +
               '</div>' +
               '<div class="form-group">' +
                 '<label class="form-label">Fecha anual de pago</label>' +
-                '<input id="v-imp-fec" type="date" class="form-input" value="' + esc(v ? v.impuesto_fecha : "") + '">' +
+                '<input name="impuesto_fecha" type="date" class="form-input" value="' + esc(d.impuesto_fecha || "") + '">' +
               '</div>' +
               '<div class="form-group" style="margin-bottom:0;">' +
                 '<label class="form-label">Recordatorio anticipado</label>' +
-                renderReminderSelect("v-imp-avi", v ? v.impuesto_aviso : 15) +
+                renderReminderSelect("impuesto_aviso", d.impuesto_aviso) +
               '</div>' +
             '</div>' +
 
@@ -1567,18 +1641,18 @@
             '<div class="card">' +
               '<div class="form-group">' +
                 '<label class="form-label">Fecha pr\u00f3xima ITV</label>' +
-                '<input id="v-itv-fec" type="date" class="form-input" value="' + esc(v ? v.itv_fecha : "") + '">' +
+                '<input name="itv_fecha" type="date" class="form-input" value="' + esc(d.itv_fecha || "") + '">' +
               '</div>' +
               '<div class="form-group" style="margin-bottom:0;">' +
                 '<label class="form-label">Recordatorio anticipado</label>' +
-                renderReminderSelect("v-itv-avi", v ? v.itv_aviso : 15) +
+                renderReminderSelect("itv_aviso", d.itv_aviso) +
               '</div>' +
             '</div>' +
 
             '<button type="submit" class="btn-primary" ' + (state.saving ? "disabled" : "") + '>' +
               (state.saving ? "Guardando en la nube..." : "Guardar veh\u00edculo") +
             '</button>' +
-            (v ? '<button type="button" class="btn-danger-soft" onclick="deleteVehicle(\'' + v.id + '\')">Eliminar veh\u00edculo</button>' : '') +
+            (isEdit ? '<button type="button" class="btn-danger-soft" onclick="deleteVehicle(\'' + state.editingVehicleId + '\')">Eliminar veh\u00edculo</button>' : '') +
           '</form>' +
         '</div>';
     }
@@ -1619,27 +1693,27 @@
             '<div class="card">' +
               '<div class="form-group">' +
                 '<label class="form-label">Concepto *</label>' +
-                '<input id="e-concepto" type="text" class="form-input" placeholder="Ej: Cambio de aceite y filtros" value="' + esc(exp ? exp.concepto : "") + '" required>' +
+                '<input name="concepto" type="text" class="form-input" placeholder="Ej: Cambio de aceite y filtros" value="' + esc(exp ? exp.concepto : "") + '" required>' +
               '</div>' +
               '<div class="form-group">' +
                 '<label class="form-label">Categor\u00eda</label>' +
-                '<select id="e-categoria" class="form-select">' + catOptions + '</select>' +
+                '<select name="categoria" class="form-select">' + catOptions + '</select>' +
               '</div>' +
               '<div class="form-group">' +
                 '<label class="form-label">Importe (&euro;) *</label>' +
-                '<input id="e-importe" type="number" step="0.01" class="form-input" placeholder="0.00" value="' + (exp ? exp.importe : "") + '" required>' +
+                '<input name="importe" type="text" inputmode="decimal" class="form-input" placeholder="0.00" value="' + (exp ? exp.importe : "") + '" required>' +
               '</div>' +
               '<div class="form-group">' +
                 '<label class="form-label">Fecha</label>' +
-                '<input id="e-fecha" type="date" class="form-input" value="' + esc(exp ? exp.fecha : todayStr) + '">' +
+                '<input name="fecha" type="date" class="form-input" value="' + esc(exp ? exp.fecha : todayStr) + '">' +
               '</div>' +
               '<div class="form-group">' +
                 '<label class="form-label">Kilometraje (opcional)</label>' +
-                '<input id="e-km" type="number" class="form-input" placeholder="Ej: 85400" value="' + (exp && exp.km ? exp.km : "") + '">' +
+                '<input name="km" type="number" class="form-input" placeholder="Ej: 85400" value="' + (exp && exp.km ? exp.km : "") + '">' +
               '</div>' +
               '<div class="form-group">' +
                 '<label class="form-label">Notas (taller, detalles...)</label>' +
-                '<input id="e-notas" type="text" class="form-input" placeholder="Opcional" value="' + esc(exp ? exp.notas : "") + '">' +
+                '<input name="notas" type="text" class="form-input" placeholder="Opcional" value="' + esc(exp ? exp.notas : "") + '">' +
               '</div>' +
               '<div class="form-group" style="margin-bottom:0;">' +
                 '<label class="form-label">Adjuntar factura o ticket</label>' +
