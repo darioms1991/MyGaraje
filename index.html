@@ -6,6 +6,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Mi Garaje">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <title>Mi Garaje</title>
   <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23007AFF'/%3E%3Cpath d='M42 105l10-32c3-9 11-15 21-15h34c10 0 18 6 21 15l10 32c5 3 8 8 8 14v16c0 4-3 7-7 7h-8c-4 0-7-3-7-7v-5H56v5c0 4-3 7-7 7h-8c-4 0-7-3-7-7v-16c0-6 3-11 8-14zm18-27l-6 20h72l-6-20c-1-4-5-7-9-7H69c-4 0-8 3-9 7zm-2 36a7 7 0 100 14 7 7 0 000-14zm64 0a7 7 0 100 14 7 7 0 000-14z' fill='%23ffffff'/%3E%3C/svg%3E">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -624,6 +627,41 @@
       color: var(--text-sec);
       font-size: 15px;
     }
+
+    @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #000000;
+      --card: #1C1C1E;
+      --text: #FFFFFF;
+      --text-sec: #98989F;
+      --blue: #0A84FF;
+      --green: #30D158;
+      --orange: #FF9F0A;
+      --red: #FF453A;
+      --border: #38383A;
+      --input-bg: #2C2C2E;
+    }
+    .navbar { background: rgba(0, 0, 0, 0.85); border-bottom-color: rgba(255, 255, 255, 0.12); }
+    .card, .stat-box { box-shadow: none; }
+    .hero-summary { box-shadow: none; }
+    .plate-badge { color: #E5E5EA; }
+    .form-label { color: #D1D1D6; }
+    .form-input:focus, .form-select:focus { background: #1C1C1E; }
+    .photo-picker { border-color: #48484A; }
+    .btn-secondary, .cal-btn, .empty-icon, .vehicle-avatar, .invoice-pill { background: rgba(10, 132, 255, 0.2); }
+    .mini-alert-pill { background: rgba(255, 159, 10, 0.18); color: #FFB340; }
+    .mini-alert-pill.urgent { background: rgba(255, 69, 58, 0.2); color: #FF6961; }
+    .alert-banner { background: rgba(255, 159, 10, 0.12); border-color: rgba(255, 159, 10, 0.4); }
+    .alert-banner.urgent { background: rgba(255, 69, 58, 0.12); border-color: rgba(255, 69, 58, 0.45); }
+    .alert-title { color: #FFB340; }
+    .alert-banner.urgent .alert-title { color: #FF6961; }
+    .alert-item { color: #E5E5EA; border-top-color: rgba(255, 255, 255, 0.1); }
+    .auth-tabs { background: #2C2C2E; }
+    .auth-tab.active { background: #636366; color: #FFFFFF; box-shadow: none; }
+    .msg-error { background: rgba(255, 69, 58, 0.15); border-color: rgba(255, 69, 58, 0.45); color: #FF6961; }
+    .msg-ok { background: rgba(48, 209, 88, 0.15); border-color: rgba(48, 209, 88, 0.45); color: #30D158; }
+  }
   </style>
 </head>
 <body>
@@ -1343,7 +1381,6 @@
         state.saving = false;
         render();
       }
-    }
 
     async function openInvoiceViewer(ev, url, name, type) {
       if (ev) ev.stopPropagation();
