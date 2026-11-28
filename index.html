@@ -771,6 +771,46 @@
       try { return decodeURIComponent(url.slice(i + marker.length).split("?")[0]); } catch (e) { return null; }
     }
 
+    var signedCache = {};
+
+    function fileUrl(url) {
+      return (url && signedCache[url]) || url;
+    }
+
+    async function signUrl(url) {
+      var p = storagePathFromUrl(url);
+      if (!p) return url;
+      try {
+        var r = await sb.storage.from(BUCKET_NAME).createSignedUrl(p, 3600);
+        if (r.data && r.data.signedUrl) return r.data.signedUrl;
+      } catch (e) { console.warn("No se pudo firmar el archivo:", e); }
+      return url;
+    }
+
+    async function signPhotos() {
+      var map = {};
+      var paths = [];
+      state.vehicles.forEach(function(v) {
+        var p = storagePathFromUrl(v.foto_url);
+        if (p && !map[p]) { map[p] = v.foto_url; paths.push(p); }
+      });
+      signedCache = {};
+      if (!paths.length) return;
+      try {
+        var r = await sb.storage.from(BUCKET_NAME).createSignedUrls(paths, 3600);
+        (r.data || []).forEach(function(it) {
+          if (it.signedUrl && map[it.path]) signedCache[map[it.path]] = it.signedUrl;
+        });
+      } catch (e) { console.warn("No se pudieron firmar las fotos:", e); }
+    }
+
+    setInterval(function() {
+      if (!state.session || state.saving) return;
+      signPhotos().then(function() {
+        if (state.view === "list" || state.view === "detail") render();
+      });
+    }, 50 * 60 * 1000);
+
     async function removeStoredFiles(urls) {
       var paths = [];
       for (var i = 0; i < urls.length; i++) {
@@ -964,6 +1004,7 @@
         if (eRes.error) throw eRes.error;
         state.vehicles = vRes.data || [];
         state.expenses = eRes.data || [];
+        await signPhotos();
       } catch (err) {
         alert("Error al cargar datos de la nube: " + (err.message || err));
       } finally {
@@ -1047,7 +1088,7 @@
       state.tempPhotoFile = null;
       if (vehicleId) {
         var v = state.vehicles.find(function(x) { return x.id === vehicleId; });
-        state.tempPhotoPreview = v ? (v.foto_url || "") : "";
+        state.tempPhotoPreview = v ? fileUrl(v.foto_url || "") : "";
         state.vehicleDraft = v ? {
           nombre: v.nombre || "",
           matricula: v.matricula || "",
@@ -1304,10 +1345,10 @@
       }
     }
 
-    function openInvoiceViewer(ev, url, name, type) {
+    async function openInvoiceViewer(ev, url, name, type) {
       if (ev) ev.stopPropagation();
       state.zoomed = false;
-      state.viewer = { url: url, name: name || "Factura", type: type || "" };
+      state.viewer = { url: await signUrl(url), name: name || "Factura", type: type || "" };
       render();
     }
 
@@ -1469,7 +1510,7 @@
           var vAlerts = getVehicleAlerts(v);
 
           var avatarHtml = v.foto_url
-            ? '<img src="' + esc(v.foto_url) + '" alt="Foto">'
+            ? '<img src="' + esc(fileUrl(v.foto_url)) + '" alt="Foto">'
             : '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14v-5l-2-5H7l-2 5v5z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/></svg>';
 
           var alertsRowHtml = "";
@@ -1537,7 +1578,7 @@
       var totalVehicle = fixedTotal + varTotal;
 
       var avatarHtml = v.foto_url
-        ? '<img src="' + esc(v.foto_url) + '" alt="Foto">'
+        ? '<img src="' + esc(fileUrl(v.foto_url)) + '" alt="Foto">'
         : '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14v-5l-2-5H7l-2 5v5z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/></svg>';
 
       function renderFixedItem(label, amount, dateStr, leadDays, showAmount, kind) {
